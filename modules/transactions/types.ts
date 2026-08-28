@@ -1,10 +1,10 @@
 export interface Transaction {
     id: string;
-    type: string;
-    accountId: string;
+    accountType: string;
+    customer_id: string;
     balance: number;
     amount: number;
-    transactionTime: string;
+    timestamp: string;
 }
 
 export interface TransactionRequest {

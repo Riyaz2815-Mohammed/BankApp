@@ -7,5 +7,8 @@ export const getBeneficiaries = (customerId: string) =>
 export const createBeneficiary = (customerId: string, data: BeneficiaryRequest) =>
     api.post<Beneficiary>(`/api/customers/${customerId}/beneficiaries`, data).then((r) => r.data);
 
+export const updateBeneficiary = (customerId: string, beneficiaryId: string, data: BeneficiaryRequest) =>
+    api.put<Beneficiary>(`/api/customers/${customerId}/beneficiaries/${beneficiaryId}`, data).then((r) => r.data);
+
 export const deleteBeneficiary = (customerId: string, beneficiaryId: string) =>
     api.delete(`/api/customers/${customerId}/beneficiaries/${beneficiaryId}`);

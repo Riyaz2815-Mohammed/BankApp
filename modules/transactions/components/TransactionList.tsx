@@ -23,16 +23,16 @@ export default function TransactionList({ transactions }: Props) {
                     {transactions.map((tx) => (
                         <tr key={tx.id} style={{ borderBottom: "1px solid var(--border)" }}>
                             <td className="px-5 py-3">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${tx.type === "CREDIT" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
-                                    {tx.type}
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${tx.accountType === "CREDIT" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                                    {tx.accountType}
                                 </span>
                             </td>
-                            <td className="px-5 py-3 font-medium" style={{ color: tx.type === "CREDIT" ? "var(--success)" : "var(--danger)" }}>
-                                {tx.type === "CREDIT" ? "+" : "-"}₹{tx.amount.toLocaleString()}
+                            <td className="px-5 py-3 font-medium" style={{ color: tx.accountType === "CREDIT" ? "var(--success)" : "var(--danger)" }}>
+                                {tx.accountType === "CREDIT" ? "+" : "-"}₹{tx.amount.toLocaleString()}
                             </td>
                             <td className="px-5 py-3" style={{ color: "var(--text)" }}>₹{tx.balance.toLocaleString()}</td>
                             <td className="px-5 py-3" style={{ color: "var(--muted)" }}>
-                                {new Date(tx.transactionTime).toLocaleString()}
+                                {new Date(tx.timestamp).toLocaleString()}
                             </td>
                         </tr>
                     ))}
