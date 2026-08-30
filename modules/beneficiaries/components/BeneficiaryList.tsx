@@ -2,7 +2,7 @@ import { Beneficiary } from "../types";
 
 interface Props {
     beneficiaries: Beneficiary[];
-    onDelete: (id: string) => void;
+    onDelete?: (id: string) => void;
 }
 
 export default function BeneficiaryList({ beneficiaries, onDelete }: Props) {
@@ -17,13 +17,15 @@ export default function BeneficiaryList({ beneficiaries, onDelete }: Props) {
                         <p className="font-semibold" style={{ color: "var(--text)" }}>{b.nickname}</p>
                         <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Account: {b.beneficiaryAccountId}</p>
                     </div>
-                    <button
-                        onClick={() => onDelete(b.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg font-medium"
-                        style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-                    >
-                        Remove
-                    </button>
+                    {onDelete && (
+                        <button
+                            onClick={() => onDelete(b.id)}
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                            style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
+                        >
+                            Remove
+                        </button>
+                    )}
                 </div>
             ))}
         </div>
