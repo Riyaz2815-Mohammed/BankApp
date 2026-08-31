@@ -5,6 +5,15 @@ import { useSession, signOut } from "next-auth/react";
 export default function Navbar() {
     const { data: session } = useSession();
     const initials = session?.user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "U";
+    const handleSignOut = async () => {
+        const idToken = session?.idToken;
+        await signOut({ redirect: false });
+        const params = new URLSearchParams({
+            post_logout_redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/login`,
+            id_token_hint: idToken ?? "",
+        });
+        window.location.href = `${process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER}/protocol/openid-connect/logout?${params}`;
+    };
     return (
         <header className="h-16 border-b flex items-center justify-between px-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
             <div />
@@ -16,7 +25,7 @@ export default function Navbar() {
                     {initials}
                 </div>
                 <button
-                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    onClick={handleSignOut}
                     className="text-xs px-3 py-1.5 rounded-lg font-medium"
                     style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
                 >
