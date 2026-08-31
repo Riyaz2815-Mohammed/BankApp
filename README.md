@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BankApp
 
-## Getting Started
+A banking portal frontend built with Next.js 15, TypeScript, and Tailwind CSS. Authenticates via Keycloak (OAuth2 / OIDC) and consumes a Spring Boot REST API backend.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Next.js 15** — App Router, TypeScript
+- **Tailwind CSS v4** — utility-first styling with custom CSS variables
+- **NextAuth v5 (Auth.js)** — Keycloak OAuth2 integration, JWT session
+- **Axios** — API client with Bearer token interceptor
+- **Keycloak** — Identity provider for authentication and RBAC
+
+## Features
+
+| Page | Description |
+|---|---|
+| Dashboard | Real-time total balance, account count, customer count |
+| Customers | Full CRUD — create, edit, delete customers |
+| Accounts | Full CRUD — create, edit, delete accounts |
+| Transactions | View by account, create CREDIT / DEBIT transactions |
+| Beneficiaries | Add and remove saved beneficiaries per customer |
+
+**RBAC**: Delete actions are restricted to users with the `admin` role from Keycloak. Regular users can only create and edit.
+
+## Project Structure
+
+```
+app/
+  (public)/login/        — Keycloak sign-in page
+  (protected)/           — Auth-gated layout with sidebar and navbar
+    dashboard/
+    customers/
+    accounts/
+    transactions/
+    beneficiaries/
+components/
+  layout/Sidebar.tsx     — Navigation sidebar
+  layout/Navbar.tsx      — Top bar with user info and sign out
+  Providers.tsx          — SessionProvider wrapper
+lib/
+  auth.ts                — NextAuth config, Keycloak provider, role extraction
+  api.ts                 — Axios instance with JWT interceptor
+modules/
+  customers/             — types, api, components
+  accounts/              — types, api, components
+  transactions/          — types, api, components
+  beneficiaries/         — types, api, components
+middleware.ts            — Route protection for all /dashboard, /customers, etc.
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Prerequisites
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Node.js 18+
+- Keycloak running at `http://localhost:8180` with realm `bankapp`
+- Spring Boot API running at `http://localhost:8080`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Keycloak Setup
 
-## Learn More
+1. Realm: `bankapp`
+2. Client: `bankapp-frontend` (confidential, standard flow enabled)
+3. Redirect URI: `http://localhost:3000/*`
+4. Roles: `admin`, `user` (assign to users as needed)
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Create `.env.local` in the project root:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
 
-## Deploy on Vercel
+KEYCLOAK_CLIENT_ID=bankapp-frontend
+KEYCLOAK_CLIENT_SECRET=your-client-secret
+KEYCLOAK_ISSUER=http://localhost:8180/realms/bankapp
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+NEXTAUTH_SECRET=your-nextauth-secret
+NEXTAUTH_URL=http://localhost:3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Running Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) — you will be redirected to the login page. Click **Sign In with Keycloak**, authenticate, and land on the dashboard.
+
+## Backend
+
+The Spring Boot API repository: [Banfico-Training](https://github.com/Riyaz2815-Mohammed/Banfico-Training)
+
+It exposes REST endpoints for customers, accounts, transactions, and beneficiaries. All endpoints (except `/api/health` and `/api/info`) require a valid Keycloak JWT. DELETE endpoints require the `ADMIN` role.
