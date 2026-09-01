@@ -32,9 +32,9 @@ function buildKeycloakProvider() {
         };
         base.token = { url: `${internalBase}/protocol/openid-connect/token` };
         base.userinfo = { url: `${internalBase}/protocol/openid-connect/userinfo` };
-        (base as Record<string, unknown>).jwks_endpoint =
+        (base as unknown as Record<string, unknown>).jwks_endpoint =
             `${internalBase}/protocol/openid-connect/certs`;
-        delete (base as Record<string, unknown>).wellKnown;
+        delete (base as unknown as Record<string, unknown>).wellKnown;
     }
 
     return base;
