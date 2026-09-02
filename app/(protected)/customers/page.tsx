@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from "@/modules/customers/api";
 import { Customer, CustomerRequest } from "@/modules/customers/types";
 import CustomerRow from "@/modules/customers/components/CustomerRow";
@@ -9,8 +10,9 @@ import CustomerRow from "@/modules/customers/components/CustomerRow";
 const emptyForm: CustomerRequest = { pan: "", firstName: "", lastName: "", email: "", phoneNumber: "" };
 
 export default function CustomersPage() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const isAdmin = session?.roles?.includes("admin") ?? false;
+    const router = useRouter();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -18,12 +20,21 @@ export default function CustomersPage() {
     const [editing, setEditing] = useState<Customer | null>(null);
     const [form, setForm] = useState<CustomerRequest>(emptyForm);
     const [saving, setSaving] = useState(false);
+
     useEffect(() => {
+        if (status === "loading") return;
+        if (!isAdmin) {
+            router.replace("/dashboard");
+            return;
+        }
         getCustomers()
             .then(setCustomers)
             .catch(() => setError("Failed to load customers"))
             .finally(() => setLoading(false));
-    }, []);
+    }, [status, isAdmin, router]);
+
+    if (status === "loading" || !isAdmin) return null;
+
     const openCreate = () => {
         setEditing(null);
         setForm(emptyForm);
@@ -50,6 +61,7 @@ export default function CustomersPage() {
             .then(() => setCustomers((prev) => prev.filter((c) => c.id !== id)))
             .catch(() => setError("Failed to delete customer"));
     };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -57,7 +69,13 @@ export default function CustomersPage() {
                     <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Customers</h2>
                     <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>Manage all bank customers</p>
                 </div>
-                <button onClick={openCreate} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--primary)" }}>+ New Customer</button>
+                <button
+                    onClick={openCreate}
+                    className="px-4 py-2 rounded-lg text-white text-sm font-semibold"
+                    style={{ backgroundColor: "var(--primary)" }}
+                >
+                    + New Customer
+                </button>
             </div>
             {loading && <p style={{ color: "var(--muted)" }}>Loading...</p>}
             {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
@@ -87,7 +105,9 @@ export default function CustomersPage() {
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>{editing ? "Edit Customer" : "New Customer"}</h3>
+                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>
+                            {editing ? "Edit Customer" : "New Customer"}
+                        </h3>
                         <div className="space-y-3">
                             <input placeholder="First Name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
                             <input placeholder="Last Name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />

@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
-const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: "⊞" },
-    { label: "Customers", href: "/customers", icon: "◉" },
-    { label: "Accounts", href: "/accounts", icon: "◈" },
-    { label: "Transactions", href: "/transactions", icon: "↔" },
-    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎" },
+const allNavItems = [
+    { label: "Dashboard", href: "/dashboard", icon: "⊞", adminOnly: false },
+    { label: "Customers", href: "/customers", icon: "◉", adminOnly: true },
+    { label: "Accounts", href: "/accounts", icon: "◈", adminOnly: false },
+    { label: "Transactions", href: "/transactions", icon: "↔", adminOnly: false },
+    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", adminOnly: false },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { data: session } = useSession();
+    const isAdmin = session?.roles?.includes("admin") ?? false;
+    const navItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);
+
     return (
         <aside className="w-64 min-h-screen flex flex-col" style={{ backgroundColor: "var(--sidebar-bg)" }}>
             <div className="px-6 py-6 border-b border-slate-700">
@@ -38,7 +43,17 @@ export default function Sidebar() {
                     );
                 })}
             </nav>
-            <div className="px-6 py-4 border-t border-slate-700">
+            <div className="px-6 py-4 border-t border-slate-700 space-y-2">
+                {session?.user?.name && (
+                    <p className="text-slate-300 text-xs truncate">{session.user.name}</p>
+                )}
+                <span
+                    className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
+                        isAdmin ? "bg-amber-500 text-white" : "bg-slate-600 text-slate-300"
+                    }`}
+                >
+                    {isAdmin ? "Admin" : "User"}
+                </span>
                 <p className="text-slate-500 text-xs">v0.1.0</p>
             </div>
         </aside>
