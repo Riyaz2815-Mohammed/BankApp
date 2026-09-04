@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAccounts } from "@/modules/accounts/api";
+import { useSession } from "next-auth/react";
+import { getAccounts, getMyAccounts } from "@/modules/accounts/api";
 import { getTransactions, createTransaction } from "@/modules/transactions/api";
 import { Account } from "@/modules/accounts/types";
 import { Transaction } from "@/modules/transactions/types";
@@ -10,6 +11,8 @@ import TransactionList from "@/modules/transactions/components/TransactionList";
 const emptyForm = { type: "CREDIT", amount: 0 };
 
 export default function TransactionsPage() {
+    const { data: session, status } = useSession();
+    const isAdmin = session?.roles?.includes("admin") ?? false;
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -21,11 +24,13 @@ export default function TransactionsPage() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        getAccounts()
+        if (status !== "authenticated") return;
+        const load = isAdmin ? getAccounts() : getMyAccounts();
+        load
             .then(setAccounts)
             .catch(() => setError("Failed to load accounts"))
             .finally(() => setLoadingAccounts(false));
-    }, []);
+    }, [status, isAdmin]);
 
     const selectAccount = (account: Account) => {
         setSelectedAccount(account);
@@ -58,7 +63,9 @@ export default function TransactionsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Transactions</h2>
-                    <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>Select an account to view and create transactions</p>
+                    <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                        Select an account to view and create transactions
+                    </p>
                 </div>
                 {selectedAccount && (
                     <button
@@ -73,7 +80,6 @@ export default function TransactionsPage() {
 
             {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
 
-            {/* Account selector */}
             {loadingAccounts ? (
                 <p className="text-sm" style={{ color: "var(--muted)" }}>Loading accounts...</p>
             ) : (
@@ -101,7 +107,6 @@ export default function TransactionsPage() {
                 </div>
             )}
 
-            {/* Transactions */}
             {selectedAccount && (
                 <div className="space-y-3">
                     <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>
@@ -115,7 +120,6 @@ export default function TransactionsPage() {
                 </div>
             )}
 
-            {/* New Transaction Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="rounded-2xl p-6 w-full max-w-sm shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
