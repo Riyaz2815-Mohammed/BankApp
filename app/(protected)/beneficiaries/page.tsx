@@ -1,84 +1,184 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { getBeneficiaries, createBeneficiary, deleteBeneficiary } from "@/modules/beneficiaries/api";
-import { Beneficiary, BeneficiaryRequest } from "@/modules/beneficiaries/types";
+import { getMyBeneficiaries, addMyBeneficiary, removeMyBeneficiary, lookupAccount } from "@/modules/beneficiaries/api";
+import { Beneficiary, AccountLookup } from "@/modules/beneficiaries/types";
 import BeneficiaryList from "@/modules/beneficiaries/components/BeneficiaryList";
 
-const emptyForm: BeneficiaryRequest = { accountId: "", nickname: "" };
-
 export default function BeneficiariesPage() {
-    const { data: session } = useSession();
-    const isAdmin = session?.roles?.includes("admin") ?? false;
+    const { status } = useSession();
     const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
-    const [customerId, setCustomerId] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Modal state
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState<BeneficiaryRequest>(emptyForm);
+    const [step, setStep] = useState<"search" | "confirm">("search");
+    const [accountNoInput, setAccountNoInput] = useState("");
+    const [searching, setSearching] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [foundAccount, setFoundAccount] = useState<AccountLookup | null>(null);
+    const [nickname, setNickname] = useState("");
     const [saving, setSaving] = useState(false);
-    const fetchBeneficiaries = () => {
-        if (!customerId.trim()) return;
-        setLoading(true);
-        setError(null);
-        getBeneficiaries(customerId)
+
+    useEffect(() => {
+        if (status !== "authenticated") return;
+        getMyBeneficiaries()
             .then(setBeneficiaries)
             .catch(() => setError("Failed to load beneficiaries"))
             .finally(() => setLoading(false));
+    }, [status]);
+
+    const openModal = () => {
+        setStep("search");
+        setAccountNoInput("");
+        setFoundAccount(null);
+        setNickname("");
+        setSearchError(null);
+        setShowModal(true);
     };
-    const handleCreate = () => {
-        if (!customerId.trim()) return;
+
+    const handleSearch = () => {
+        const trimmed = accountNoInput.trim();
+        if (!trimmed) return;
+        setSearching(true);
+        setSearchError(null);
+        lookupAccount(trimmed)
+            .then((result) => {
+                setFoundAccount(result);
+                setNickname(result.accountHolderName.split(" ")[0]);
+                setStep("confirm");
+            })
+            .catch(() => setSearchError("No account found with that account number."))
+            .finally(() => setSearching(false));
+    };
+
+    const handleAdd = () => {
+        if (!foundAccount || !nickname.trim()) return;
         setSaving(true);
-        createBeneficiary(customerId, form)
+        addMyBeneficiary({ accountId: foundAccount.id, nickname: nickname.trim() })
             .then((b) => {
                 setBeneficiaries((prev) => [...prev, b]);
                 setShowModal(false);
-                setForm(emptyForm);
             })
-            .catch(() => setError("Failed to add beneficiary"))
+            .catch(() => setSearchError("Failed to add beneficiary. They may already be in your list."))
             .finally(() => setSaving(false));
     };
-    const handleDelete = (beneficiaryId: string) => {
-        deleteBeneficiary(customerId, beneficiaryId)
-            .then(() => setBeneficiaries((prev) => prev.filter((b) => b.id !== beneficiaryId)))
+
+    const handleRemove = (id: string) => {
+        removeMyBeneficiary(id)
+            .then(() => setBeneficiaries((prev) => prev.filter((b) => b.id !== id)))
             .catch(() => setError("Failed to remove beneficiary"));
     };
+
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Beneficiaries</h2>
-                <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>Manage saved beneficiaries</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Beneficiaries</h2>
+                    <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>People you can transfer money to</p>
+                </div>
+                <button
+                    onClick={openModal}
+                    className="px-4 py-2 rounded-lg text-white text-sm font-semibold"
+                    style={{ backgroundColor: "var(--primary)" }}
+                >
+                    + Add Beneficiary
+                </button>
             </div>
-            <div className="flex gap-3">
-                <input
-                    type="text"
-                    placeholder="Customer ID"
-                    value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                    className="px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500 w-80"
-                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--surface)" }}
-                />
-                <button onClick={fetchBeneficiaries} className="px-5 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--primary)" }}>Load</button>
-                {customerId.trim() && (
-                    <button onClick={() => { setForm(emptyForm); setShowModal(true); }} className="px-5 py-2 rounded-lg text-sm font-semibold border" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>+ Add Beneficiary</button>
-                )}
-            </div>
+
             {loading && <p style={{ color: "var(--muted)" }}>Loading...</p>}
             {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-            <BeneficiaryList beneficiaries={beneficiaries} onDelete={isAdmin ? handleDelete : undefined} />
+            {!loading && <BeneficiaryList beneficiaries={beneficiaries} onDelete={handleRemove} />}
+
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="rounded-2xl p-6 w-full max-w-sm shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>Add Beneficiary</h3>
-                        <div className="space-y-3">
-                            <input placeholder="Account ID" value={form.accountId} onChange={(e) => setForm({ ...form, accountId: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                            <input placeholder="Nickname" value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                        </div>
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={() => setShowModal(false)} className="flex-1 py-2 rounded-lg text-sm border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>Cancel</button>
-                            <button onClick={handleCreate} disabled={saving} className="flex-1 py-2 rounded-lg text-sm text-white font-semibold" style={{ backgroundColor: "var(--primary)" }}>{saving ? "Saving..." : "Add"}</button>
-                        </div>
+
+                        {step === "search" && (
+                            <>
+                                <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Add Beneficiary</h3>
+                                <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+                                    Enter the account number of the person you want to add.
+                                </p>
+                                <input
+                                    placeholder="Account number (e.g. SB002001)"
+                                    value={accountNoInput}
+                                    onChange={(e) => { setAccountNoInput(e.target.value); setSearchError(null); }}
+                                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                    autoFocus
+                                />
+                                {searchError && (
+                                    <p className="text-xs mt-2" style={{ color: "var(--danger)" }}>{searchError}</p>
+                                )}
+                                <div className="flex gap-3 mt-6">
+                                    <button
+                                        onClick={() => setShowModal(false)}
+                                        className="flex-1 py-2 rounded-lg text-sm border"
+                                        style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSearch}
+                                        disabled={searching || !accountNoInput.trim()}
+                                        className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
+                                        style={{ backgroundColor: "var(--primary)" }}
+                                    >
+                                        {searching ? "Searching..." : "Search"}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {step === "confirm" && foundAccount && (
+                            <>
+                                <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Confirm Beneficiary</h3>
+                                <div
+                                    className="rounded-lg p-4 mb-4 mt-3"
+                                    style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)" }}
+                                >
+                                    <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{foundAccount.accountHolderName}</p>
+                                    <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                                        {foundAccount.accountType} · {foundAccount.accountNo}
+                                    </p>
+                                </div>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>
+                                    Nickname (how you'll see them)
+                                </label>
+                                <input
+                                    placeholder="e.g. Priya"
+                                    value={nickname}
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                    autoFocus
+                                />
+                                {searchError && (
+                                    <p className="text-xs mt-2" style={{ color: "var(--danger)" }}>{searchError}</p>
+                                )}
+                                <div className="flex gap-3 mt-6">
+                                    <button
+                                        onClick={() => setStep("search")}
+                                        className="flex-1 py-2 rounded-lg text-sm border"
+                                        style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        onClick={handleAdd}
+                                        disabled={saving || !nickname.trim()}
+                                        className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
+                                        style={{ backgroundColor: "var(--primary)" }}
+                                    >
+                                        {saving ? "Adding..." : "Add Beneficiary"}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

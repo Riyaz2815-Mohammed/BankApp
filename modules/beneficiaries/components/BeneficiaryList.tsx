@@ -12,15 +12,22 @@ export default function BeneficiaryList({ beneficiaries, onDelete }: Props) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {beneficiaries.map((b) => (
-                <div key={b.id} className="rounded-xl p-5 shadow-sm flex items-center justify-between" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                    <div>
-                        <p className="font-semibold" style={{ color: "var(--text)" }}>{b.nickname}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Account: {b.beneficiaryAccountId}</p>
+                <div
+                    key={b.id}
+                    className="rounded-xl p-5 shadow-sm flex items-center justify-between gap-3"
+                    style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+                >
+                    <div className="min-w-0">
+                        <p className="font-semibold truncate" style={{ color: "var(--text)" }}>{b.nickname}</p>
+                        <p className="text-sm mt-0.5 truncate" style={{ color: "var(--muted)" }}>{b.accountHolderName}</p>
+                        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                            {b.accountType} · {b.accountNo}
+                        </p>
                     </div>
                     {onDelete && (
                         <button
                             onClick={() => onDelete(b.id)}
-                            className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                            className="shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium"
                             style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
                         >
                             Remove
