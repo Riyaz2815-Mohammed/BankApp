@@ -3,19 +3,30 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { getAccounts, getMyAccounts, createAccount, updateAccount, deleteAccount } from "@/modules/accounts/api";
-import { Account, AccountRequest } from "@/modules/accounts/types";
-
-const emptyForm: AccountRequest = { accountNo: "", accountType: "SAVINGS", balance: 0, customerId: "" };
+import { getCustomers } from "@/modules/customers/api";
+import { Account } from "@/modules/accounts/types";
+import { Customer } from "@/modules/customers/types";
 
 export default function AccountsPage() {
     const { data: session, status } = useSession();
     const isAdmin = session?.roles?.includes("admin") ?? false;
+
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState<Account | null>(null);
-    const [form, setForm] = useState<AccountRequest>(emptyForm);
+
+    // Create modal
+    const [showCreate, setShowCreate] = useState(false);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [customerSearch, setCustomerSearch] = useState("");
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [createForm, setCreateForm] = useState({ accountNo: "", accountType: "SAVINGS", balance: 0 });
+    const [creating, setCreating] = useState(false);
+
+    // Edit modal
+    const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+    const [editForm, setEditForm] = useState({ accountType: "SAVINGS", balance: 0 });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -28,31 +39,63 @@ export default function AccountsPage() {
     }, [status, isAdmin]);
 
     const openCreate = () => {
-        setEditing(null);
-        setForm(emptyForm);
-        setShowModal(true);
+        setCreateForm({ accountNo: "", accountType: "SAVINGS", balance: 0 });
+        setSelectedCustomer(null);
+        setCustomerSearch("");
+        setShowDropdown(false);
+        if (customers.length === 0) {
+            getCustomers().then(setCustomers).catch(() => {});
+        }
+        setShowCreate(true);
     };
+
     const openEdit = (a: Account) => {
-        setEditing(a);
-        setForm({ accountNo: a.accountNo, accountType: a.accountType, balance: a.balance, customerId: a.customerId });
-        setShowModal(true);
+        setEditingAccount(a);
+        setEditForm({ accountType: a.accountType, balance: a.balance });
     };
-    const handleSave = () => {
-        setSaving(true);
-        const action = editing ? updateAccount(editing.id, form) : createAccount(form);
-        action
+
+    const handleCreate = () => {
+        if (!selectedCustomer) return;
+        setCreating(true);
+        createAccount({ ...createForm, customerId: selectedCustomer.id })
             .then((saved) => {
-                setAccounts((prev) => editing ? prev.map((a) => a.id === editing.id ? saved : a) : [...prev, saved]);
-                setShowModal(false);
+                setAccounts((prev) => [...prev, saved]);
+                setShowCreate(false);
             })
-            .catch(() => setError("Failed to save account"))
+            .catch(() => setError("Failed to create account"))
+            .finally(() => setCreating(false));
+    };
+
+    const handleEdit = () => {
+        if (!editingAccount) return;
+        setSaving(true);
+        updateAccount(editingAccount.id, {
+            accountNo: editingAccount.accountNo,
+            accountType: editForm.accountType,
+            balance: editForm.balance,
+            customerId: editingAccount.customerId,
+        })
+            .then((saved) => {
+                setAccounts((prev) => prev.map((a) => a.id === saved.id ? saved : a));
+                setEditingAccount(null);
+            })
+            .catch(() => setError("Failed to update account"))
             .finally(() => setSaving(false));
     };
+
     const handleDelete = (id: string) => {
         deleteAccount(id)
             .then(() => setAccounts((prev) => prev.filter((a) => a.id !== id)))
             .catch(() => setError("Failed to delete account"));
     };
+
+    const filteredCustomers = customers.filter((c) => {
+        const q = customerSearch.toLowerCase();
+        return (
+            `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
+            c.email.toLowerCase().includes(q)
+        );
+    });
 
     return (
         <div className="space-y-6">
@@ -93,15 +136,15 @@ export default function AccountsPage() {
                             <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700">
                                 {acc.accountType}
                             </span>
-                            <span className="text-xs" style={{ color: "var(--muted)" }}>{acc.accountNo}</span>
+                            <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{acc.accountNo}</span>
                         </div>
                         <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>
                             ₹{acc.balance.toLocaleString()}
                         </p>
                         <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Available Balance</p>
-                        {isAdmin && (
-                            <p className="text-xs mt-2 truncate" style={{ color: "var(--muted)" }}>
-                                Customer: {acc.customerId}
+                        {isAdmin && acc.customerName && (
+                            <p className="text-sm mt-3 font-medium truncate" style={{ color: "var(--text)" }}>
+                                {acc.customerName}
                             </p>
                         )}
                         {isAdmin && (
@@ -126,61 +169,182 @@ export default function AccountsPage() {
                 ))}
             </div>
 
-            {showModal && isAdmin && (
+            {/* Create Account Modal */}
+            {showCreate && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>
-                            {editing ? "Edit Account" : "New Account"}
-                        </h3>
+                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>New Account</h3>
                         <div className="space-y-3">
-                            <input
-                                placeholder="Account Number"
-                                value={form.accountNo}
-                                onChange={(e) => setForm({ ...form, accountNo: e.target.value })}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            />
-                            <select
-                                value={form.accountType}
-                                onChange={(e) => setForm({ ...form, accountType: e.target.value })}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            >
-                                <option value="SAVINGS">SAVINGS</option>
-                                <option value="CURRENT">CURRENT</option>
-                                <option value="FIXED">FIXED</option>
-                            </select>
-                            <input
-                                type="number"
-                                placeholder="Balance"
-                                value={form.balance}
-                                onChange={(e) => setForm({ ...form, balance: Number(e.target.value) })}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            />
-                            <input
-                                placeholder="Customer ID"
-                                value={form.customerId}
-                                onChange={(e) => setForm({ ...form, customerId: e.target.value })}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            />
+                            {/* Customer search */}
+                            <div className="relative">
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Customer</label>
+                                {selectedCustomer ? (
+                                    <div
+                                        className="w-full px-4 py-2 rounded-lg border text-sm flex items-center justify-between"
+                                        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}
+                                    >
+                                        <span style={{ color: "var(--text)" }}>
+                                            {selectedCustomer.firstName} {selectedCustomer.lastName}
+                                            <span className="ml-2 text-xs" style={{ color: "var(--muted)" }}>
+                                                {selectedCustomer.email}
+                                            </span>
+                                        </span>
+                                        <button
+                                            onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); }}
+                                            className="text-xs ml-2"
+                                            style={{ color: "var(--muted)" }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input
+                                            placeholder="Search by name or email…"
+                                            value={customerSearch}
+                                            onChange={(e) => { setCustomerSearch(e.target.value); setShowDropdown(true); }}
+                                            onFocus={() => setShowDropdown(true)}
+                                            className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                            style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                        />
+                                        {showDropdown && filteredCustomers.length > 0 && (
+                                            <div
+                                                className="absolute top-full left-0 right-0 mt-1 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto"
+                                                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+                                            >
+                                                {filteredCustomers.map((c) => (
+                                                    <button
+                                                        key={c.id}
+                                                        onClick={() => { setSelectedCustomer(c); setShowDropdown(false); }}
+                                                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors"
+                                                        style={{ color: "var(--text)" }}
+                                                    >
+                                                        <span className="font-medium">{c.firstName} {c.lastName}</span>
+                                                        <span className="ml-2 text-xs" style={{ color: "var(--muted)" }}>{c.email}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {showDropdown && customerSearch && filteredCustomers.length === 0 && (
+                                            <div
+                                                className="absolute top-full left-0 right-0 mt-1 rounded-lg px-4 py-3 text-sm"
+                                                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
+                                            >
+                                                No customers match "{customerSearch}"
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Number</label>
+                                <input
+                                    placeholder="e.g. SB009001"
+                                    value={createForm.accountNo}
+                                    onChange={(e) => setCreateForm({ ...createForm, accountNo: e.target.value })}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Type</label>
+                                <select
+                                    value={createForm.accountType}
+                                    onChange={(e) => setCreateForm({ ...createForm, accountType: e.target.value })}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                >
+                                    <option value="SAVINGS">SAVINGS</option>
+                                    <option value="CURRENT">CURRENT</option>
+                                    <option value="FIXED">FIXED</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Opening Balance (₹)</label>
+                                <input
+                                    type="number"
+                                    placeholder="e.g. 10000"
+                                    min={0}
+                                    value={createForm.balance || ""}
+                                    onChange={(e) => setCreateForm({ ...createForm, balance: Number(e.target.value) })}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                />
+                            </div>
                         </div>
                         <div className="flex gap-3 mt-6">
                             <button
-                                onClick={() => setShowModal(false)}
+                                onClick={() => setShowCreate(false)}
                                 className="flex-1 py-2 rounded-lg text-sm border"
                                 style={{ borderColor: "var(--border)", color: "var(--muted)" }}
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="flex-1 py-2 rounded-lg text-sm text-white font-semibold"
+                                onClick={handleCreate}
+                                disabled={creating || !selectedCustomer || !createForm.accountNo}
+                                className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
                                 style={{ backgroundColor: "var(--primary)" }}
                             >
-                                {saving ? "Saving..." : "Save"}
+                                {creating ? "Creating..." : "Create Account"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Account Modal */}
+            {editingAccount && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
+                        <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Edit Account</h3>
+                        <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
+                            {editingAccount.customerName} · {editingAccount.accountNo}
+                        </p>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Type</label>
+                                <select
+                                    value={editForm.accountType}
+                                    onChange={(e) => setEditForm({ ...editForm, accountType: e.target.value })}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                >
+                                    <option value="SAVINGS">SAVINGS</option>
+                                    <option value="CURRENT">CURRENT</option>
+                                    <option value="FIXED">FIXED</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Balance (₹)</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={editForm.balance}
+                                    onChange={(e) => setEditForm({ ...editForm, balance: Number(e.target.value) })}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setEditingAccount(null)}
+                                className="flex-1 py-2 rounded-lg text-sm border"
+                                style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleEdit}
+                                disabled={saving}
+                                className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
+                                style={{ backgroundColor: "var(--primary)" }}
+                            >
+                                {saving ? "Saving..." : "Save Changes"}
                             </button>
                         </div>
                     </div>
