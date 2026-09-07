@@ -36,12 +36,14 @@ export default function TransactionList({ transactions }: Props) {
                                 </span>
                             </td>
                             <td className="px-5 py-3 max-w-xs truncate" style={{ color: "var(--muted)" }}>
-                                {tx.description || (tx.accountType === "CREDIT" ? "Credit" : "Debit")}
+                                {tx.description || (tx.accountType === "CREDIT" ? "Cash Deposit" : "Cash Withdrawal")}
                             </td>
                             <td className="px-5 py-3 font-medium" style={{ color: tx.accountType === "CREDIT" ? "var(--success)" : "var(--danger)" }}>
                                 {tx.accountType === "CREDIT" ? "+" : "-"}₹{tx.amount.toLocaleString()}
                             </td>
-                            <td className="px-5 py-3" style={{ color: "var(--text)" }}>₹{tx.balance.toLocaleString()}</td>
+                            <td className="px-5 py-3" style={{ color: "var(--text)" }}>
+                                {tx.balance != null ? `₹${tx.balance.toLocaleString()}` : "—"}
+                            </td>
                             <td className="px-5 py-3 whitespace-nowrap" style={{ color: "var(--muted)" }}>
                                 {formatDateTime(tx.timestamp)}
                             </td>
