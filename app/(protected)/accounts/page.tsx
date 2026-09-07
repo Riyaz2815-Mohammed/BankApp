@@ -10,6 +10,8 @@ import { Customer } from "@/modules/customers/types";
 export default function AccountsPage() {
     const { data: session, status } = useSession();
     const isAdmin = session?.roles?.includes("admin") ?? false;
+    const isManager = session?.roles?.includes("BankManager") ?? false;
+    const isStaff = isAdmin || isManager;
 
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ export default function AccountsPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        const load = isAdmin ? getAccounts() : getMyAccounts();
+        const load = isStaff ? getAccounts() : getMyAccounts();
         load
             .then(setAccounts)
             .catch(() => setError("Failed to load accounts"))
@@ -102,10 +104,10 @@ export default function AccountsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
-                        {isAdmin ? "All Accounts" : "My Accounts"}
+                        {isStaff ? "All Accounts" : "My Accounts"}
                     </h2>
                     <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                        {isAdmin ? "Manage all bank accounts" : "Your bank accounts"}
+                        {isStaff ? "All registered bank accounts" : "Your bank accounts"}
                     </p>
                 </div>
                 {isAdmin && (
@@ -142,7 +144,7 @@ export default function AccountsPage() {
                             ₹{acc.balance.toLocaleString()}
                         </p>
                         <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Available Balance</p>
-                        {isAdmin && acc.customerName && (
+                        {isStaff && acc.customerName && (
                             <p className="text-sm mt-3 font-medium truncate" style={{ color: "var(--text)" }}>
                                 {acc.customerName}
                             </p>

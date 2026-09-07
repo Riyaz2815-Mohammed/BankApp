@@ -13,6 +13,7 @@ const emptyForm = { type: "CREDIT", amount: 0 };
 export default function TransactionsPage() {
     const { data: session, status } = useSession();
     const isAdmin = session?.roles?.includes("admin") ?? false;
+    const isStaff = isAdmin || (session?.roles?.includes("BankManager") ?? false);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -25,12 +26,12 @@ export default function TransactionsPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        const load = isAdmin ? getAccounts() : getMyAccounts();
+        const load = isStaff ? getAccounts() : getMyAccounts();
         load
             .then(setAccounts)
             .catch(() => setError("Failed to load accounts"))
             .finally(() => setLoadingAccounts(false));
-    }, [status, isAdmin]);
+    }, [status, isStaff]);
 
     const selectAccount = (account: Account) => {
         setSelectedAccount(account);
