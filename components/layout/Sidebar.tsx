@@ -9,6 +9,7 @@ const allNavItems = [
     { label: "Customers", href: "/customers", icon: "◉", adminOnly: true },
     { label: "Accounts", href: "/accounts", icon: "◈", adminOnly: false },
     { label: "Transactions", href: "/transactions", icon: "↔", adminOnly: false },
+    { label: "Transfer", href: "/transfer", icon: "➤", adminOnly: false },
     { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", adminOnly: false },
 ];
 

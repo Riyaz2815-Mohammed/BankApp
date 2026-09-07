@@ -13,6 +13,7 @@ export const config = {
         "/customers/:path*",
         "/accounts/:path*",
         "/transactions/:path*",
+        "/transfer/:path*",
         "/beneficiaries/:path*",
     ],
 };
