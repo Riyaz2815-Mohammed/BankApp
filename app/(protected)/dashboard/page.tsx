@@ -8,32 +8,36 @@ import { getCustomers } from "@/modules/customers/api";
 export default function DashboardPage() {
     const { data: session, status } = useSession();
     const isAdmin = session?.roles?.includes("admin") ?? false;
+    const isManager = session?.roles?.includes("BankManager") ?? false;
+    const isStaff = isAdmin || isManager;
+
     const [totalBalance, setTotalBalance] = useState<number | null>(null);
     const [accountCount, setAccountCount] = useState<number | null>(null);
     const [customerCount, setCustomerCount] = useState<number | null>(null);
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        const loadAccounts = isAdmin ? getAccounts() : getMyAccounts();
+        const loadAccounts = isStaff ? getAccounts() : getMyAccounts();
         loadAccounts
             .then((accounts) => {
                 setAccountCount(accounts.length);
                 setTotalBalance(accounts.reduce((sum, a) => sum + a.balance, 0));
             })
             .catch(() => {});
-        if (isAdmin) {
+        if (isStaff) {
             getCustomers()
                 .then((customers) => setCustomerCount(customers.length))
                 .catch(() => {});
         }
-    }, [status, isAdmin]);
+    }, [status, isStaff]);
 
     const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString());
+    const firstName = session?.user?.name?.split(" ")[0] ?? "there";
 
-    const adminStats = [
-        { label: "Total Balance", value: totalBalance === null ? "—" : `₹${totalBalance.toLocaleString()}`, color: "var(--primary)" },
-        { label: "Accounts", value: fmt(accountCount), color: "var(--success)" },
-        { label: "Customers", value: fmt(customerCount), color: "#F59E0B" },
+    const staffStats = [
+        { label: "Total Bank Balance", value: totalBalance === null ? "—" : `₹${totalBalance.toLocaleString()}`, color: "var(--primary)" },
+        { label: "Total Accounts", value: fmt(accountCount), color: "var(--success)" },
+        { label: "Total Customers", value: fmt(customerCount), color: "#F59E0B" },
         { label: "Status", value: "Active", color: "#8B5CF6" },
     ];
 
@@ -43,18 +47,17 @@ export default function DashboardPage() {
         { label: "Status", value: "Active", color: "#8B5CF6" },
     ];
 
-    const stats = isAdmin ? adminStats : userStats;
-    const firstName = session?.user?.name?.split(" ")[0] ?? "there";
+    const stats = isStaff ? staffStats : userStats;
 
     return (
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Dashboard</h2>
                 <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                    {isAdmin ? "Overview of all banking activity" : `Welcome back, ${firstName}`}
+                    {isStaff ? "Overview of all banking activity" : `Welcome back, ${firstName}`}
                 </p>
             </div>
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isStaff ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4`}>
                 {stats.map((stat) => (
                     <div
                         key={stat.label}

@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const allNavItems = [
-    { label: "Dashboard", href: "/dashboard", icon: "⊞", staffOnly: false },
-    { label: "Customers", href: "/customers", icon: "◉", staffOnly: true },
-    { label: "Accounts", href: "/accounts", icon: "◈", staffOnly: false },
-    { label: "Transactions", href: "/transactions", icon: "↔", staffOnly: false },
-    { label: "Transfer", href: "/transfer", icon: "➤", staffOnly: false },
-    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false },
+    { label: "Dashboard",     href: "/dashboard",     icon: "⊞", staffOnly: false, userOnly: false },
+    { label: "Customers",     href: "/customers",     icon: "◉", staffOnly: true,  userOnly: false },
+    { label: "Accounts",      href: "/accounts",      icon: "◈", staffOnly: false, userOnly: false },
+    { label: "Transactions",  href: "/transactions",  icon: "↔", staffOnly: false, userOnly: false },
+    { label: "Transfer",      href: "/transfer",      icon: "➤", staffOnly: false, userOnly: true  },
+    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false, userOnly: true  },
 ];
 
 export default function Sidebar() {
@@ -19,7 +19,11 @@ export default function Sidebar() {
     const isAdmin = session?.roles?.includes("admin") ?? false;
     const isManager = session?.roles?.includes("BankManager") ?? false;
     const isStaff = isAdmin || isManager;
-    const navItems = allNavItems.filter((item) => !item.staffOnly || isStaff);
+    const navItems = allNavItems.filter((item) => {
+        if (item.staffOnly && !isStaff) return false;
+        if (item.userOnly && isStaff) return false;
+        return true;
+    });
 
     const roleBadge = isAdmin
         ? { label: "Admin", className: "bg-amber-500 text-white" }
