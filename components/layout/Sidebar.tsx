@@ -5,19 +5,27 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const allNavItems = [
-    { label: "Dashboard", href: "/dashboard", icon: "⊞", adminOnly: false },
-    { label: "Customers", href: "/customers", icon: "◉", adminOnly: true },
-    { label: "Accounts", href: "/accounts", icon: "◈", adminOnly: false },
-    { label: "Transactions", href: "/transactions", icon: "↔", adminOnly: false },
-    { label: "Transfer", href: "/transfer", icon: "➤", adminOnly: false },
-    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", adminOnly: false },
+    { label: "Dashboard", href: "/dashboard", icon: "⊞", staffOnly: false },
+    { label: "Customers", href: "/customers", icon: "◉", staffOnly: true },
+    { label: "Accounts", href: "/accounts", icon: "◈", staffOnly: false },
+    { label: "Transactions", href: "/transactions", icon: "↔", staffOnly: false },
+    { label: "Transfer", href: "/transfer", icon: "➤", staffOnly: false },
+    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
     const isAdmin = session?.roles?.includes("admin") ?? false;
-    const navItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);
+    const isManager = session?.roles?.includes("BankManager") ?? false;
+    const isStaff = isAdmin || isManager;
+    const navItems = allNavItems.filter((item) => !item.staffOnly || isStaff);
+
+    const roleBadge = isAdmin
+        ? { label: "Admin", className: "bg-amber-500 text-white" }
+        : isManager
+        ? { label: "Manager", className: "bg-emerald-600 text-white" }
+        : { label: "User", className: "bg-slate-600 text-slate-300" };
 
     return (
         <aside className="w-64 min-h-screen flex flex-col" style={{ backgroundColor: "var(--sidebar-bg)" }}>
@@ -48,12 +56,8 @@ export default function Sidebar() {
                 {session?.user?.name && (
                     <p className="text-slate-300 text-xs truncate">{session.user.name}</p>
                 )}
-                <span
-                    className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
-                        isAdmin ? "bg-amber-500 text-white" : "bg-slate-600 text-slate-300"
-                    }`}
-                >
-                    {isAdmin ? "Admin" : "User"}
+                <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${roleBadge.className}`}>
+                    {roleBadge.label}
                 </span>
                 <p className="text-slate-500 text-xs">v0.1.0</p>
             </div>
