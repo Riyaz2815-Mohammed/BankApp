@@ -28,7 +28,6 @@ export default function TransferPage() {
     // Step 2 — details
     const [fromAccountId, setFromAccountId] = useState("");
     const [amount, setAmount] = useState("");
-    const [note, setNote] = useState("");
 
     // Success
     const [result, setResult] = useState<TransferResponse | null>(null);
@@ -63,7 +62,6 @@ export default function TransferPage() {
             fromAccountId,
             recipientAccountNo: recipient.accountNo,
             amount: Number(amount),
-            note: note.trim() || undefined,
         })
             .then((res) => {
                 setResult(res);
@@ -82,7 +80,6 @@ export default function TransferPage() {
         setRecipient(null);
         setFromAccountId("");
         setAmount("");
-        setNote("");
         setResult(null);
         setError(null);
     };
@@ -211,17 +208,7 @@ export default function TransferPage() {
                             )}
                         </div>
 
-                        <div>
-                            <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Note / Remark (optional)</label>
-                            <input
-                                placeholder="e.g. Rent for June"
-                                maxLength={50}
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            />
-                        </div>
+
                     </div>
 
                     <div className="flex gap-3">
@@ -267,12 +254,6 @@ export default function TransferPage() {
                                 <span style={{ color: "var(--muted)" }}>Amount</span>
                                 <span style={{ color: "var(--danger)" }}>-₹{Number(amount).toLocaleString()}</span>
                             </div>
-                            {note && (
-                                <div className="flex justify-between">
-                                    <span style={{ color: "var(--muted)" }}>Note</span>
-                                    <span style={{ color: "var(--text)" }}>{note}</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                     {error && (
@@ -327,12 +308,6 @@ export default function TransferPage() {
                                 {new Date(result.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
                             </span>
                         </div>
-                        {result.note && (
-                            <div className="flex justify-between">
-                                <span style={{ color: "var(--muted)" }}>Note</span>
-                                <span style={{ color: "var(--text)" }}>{result.note}</span>
-                            </div>
-                        )}
                     </div>
                     <button
                         onClick={reset}
