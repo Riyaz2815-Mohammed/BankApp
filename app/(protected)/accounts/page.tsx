@@ -7,6 +7,7 @@ import { getAccounts, getMyAccounts, createAccount, updateAccount, deleteAccount
 import { getCustomers } from "@/modules/customers/api";
 import { Account } from "@/modules/accounts/types";
 import { Customer } from "@/modules/customers/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function AccountsPage() {
     const { data: session, status } = useSession();
@@ -32,6 +33,7 @@ export default function AccountsPage() {
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [editForm, setEditForm] = useState({ accountType: "SAVINGS", balance: 0 });
     const [saving, setSaving] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
     useEffect(() => {
         if (status !== "authenticated") return;
@@ -87,10 +89,13 @@ export default function AccountsPage() {
             .finally(() => setSaving(false));
     };
 
-    const handleDelete = (id: string) => {
-        deleteAccount(id)
-            .then(() => setAccounts((prev) => prev.filter((a) => a.id !== id)))
-            .catch(() => setError("Failed to delete account"));
+    const handleDelete = (id: string) => setConfirmDelete(id);
+    const confirmDeleteAction = () => {
+        if (!confirmDelete) return;
+        deleteAccount(confirmDelete)
+            .then(() => setAccounts((prev) => prev.filter((a) => a.id !== confirmDelete)))
+            .catch(() => setError("Failed to delete account"))
+            .finally(() => setConfirmDelete(null));
     };
 
     const filteredCustomers = customers.filter((c) => {
@@ -183,6 +188,15 @@ export default function AccountsPage() {
                     </div>
                 ))}
             </div>
+
+            {confirmDelete && (
+                <ConfirmDialog
+                    title="Delete Account"
+                    message="This will permanently remove the account and all its transactions. This action cannot be undone."
+                    onConfirm={confirmDeleteAction}
+                    onCancel={() => setConfirmDelete(null)}
+                />
+            )}
 
             {/* Create Account Modal */}
             {showCreate && (

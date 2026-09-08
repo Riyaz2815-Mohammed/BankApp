@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, registerUser } from "@/modules/customers/api";
 import { Customer, CustomerRequest, RegisterUserRequest, RegisterUserResponse } from "@/modules/customers/types";
 import CustomerRow from "@/modules/customers/components/CustomerRow";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const emptyForm: CustomerRequest = { pan: "", firstName: "", lastName: "", email: "", phoneNumber: "" };
 const emptyRegisterForm: RegisterUserRequest = {
@@ -27,6 +28,7 @@ export default function CustomersPage() {
     const [editing, setEditing] = useState<Customer | null>(null);
     const [form, setForm] = useState<CustomerRequest>(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
     // Register User modal (admin + manager)
     const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -69,10 +71,13 @@ export default function CustomersPage() {
             .catch(() => setError("Failed to save customer"))
             .finally(() => setSaving(false));
     };
-    const handleDelete = (id: string) => {
-        deleteCustomer(id)
-            .then(() => setCustomers((prev) => prev.filter((c) => c.id !== id)))
-            .catch(() => setError("Failed to delete customer"));
+    const handleDelete = (id: string) => setConfirmDelete(id);
+    const confirmDeleteAction = () => {
+        if (!confirmDelete) return;
+        deleteCustomer(confirmDelete)
+            .then(() => setCustomers((prev) => prev.filter((c) => c.id !== confirmDelete)))
+            .catch(() => setError("Failed to delete customer"))
+            .finally(() => setConfirmDelete(null));
     };
 
     const openRegister = () => {
@@ -174,6 +179,15 @@ export default function CustomersPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {confirmDelete && (
+                <ConfirmDialog
+                    title="Delete Customer"
+                    message="This will permanently remove the customer. This action cannot be undone."
+                    onConfirm={confirmDeleteAction}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {/* Register User modal (admin + manager) */}

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { getMyBeneficiaries, addMyBeneficiary, removeMyBeneficiary, lookupAccount } from "@/modules/beneficiaries/api";
 import { Beneficiary, AccountLookup } from "@/modules/beneficiaries/types";
 import BeneficiaryList from "@/modules/beneficiaries/components/BeneficiaryList";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function BeneficiariesPage() {
     const { status } = useSession();
@@ -21,6 +22,7 @@ export default function BeneficiariesPage() {
     const [foundAccount, setFoundAccount] = useState<AccountLookup | null>(null);
     const [nickname, setNickname] = useState("");
     const [saving, setSaving] = useState(false);
+    const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
     useEffect(() => {
         if (status !== "authenticated") return;
@@ -66,10 +68,13 @@ export default function BeneficiariesPage() {
             .finally(() => setSaving(false));
     };
 
-    const handleRemove = (id: string) => {
-        removeMyBeneficiary(id)
-            .then(() => setBeneficiaries((prev) => prev.filter((b) => b.id !== id)))
-            .catch(() => setError("Failed to remove beneficiary"));
+    const handleRemove = (id: string) => setConfirmRemove(id);
+    const confirmRemoveAction = () => {
+        if (!confirmRemove) return;
+        removeMyBeneficiary(confirmRemove)
+            .then(() => setBeneficiaries((prev) => prev.filter((b) => b.id !== confirmRemove)))
+            .catch(() => setError("Failed to remove beneficiary"))
+            .finally(() => setConfirmRemove(null));
     };
 
     return (
@@ -91,6 +96,16 @@ export default function BeneficiariesPage() {
             {loading && <p style={{ color: "var(--muted)" }}>Loading...</p>}
             {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
             {!loading && <BeneficiaryList beneficiaries={beneficiaries} onDelete={handleRemove} />}
+
+            {confirmRemove && (
+                <ConfirmDialog
+                    title="Remove Beneficiary"
+                    message="Are you sure you want to remove this beneficiary from your list?"
+                    confirmLabel="Remove"
+                    onConfirm={confirmRemoveAction}
+                    onCancel={() => setConfirmRemove(null)}
+                />
+            )}
 
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
