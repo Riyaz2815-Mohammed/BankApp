@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { getAccounts, getMyAccounts, createAccount, updateAccount, deleteAccount } from "@/modules/accounts/api";
 import { getCustomers } from "@/modules/customers/api";
 import { Account } from "@/modules/accounts/types";
@@ -12,6 +13,7 @@ export default function AccountsPage() {
     const isAdmin = session?.roles?.includes("admin") ?? false;
     const isManager = session?.roles?.includes("BankManager") ?? false;
     const isStaff = isAdmin || isManager;
+    const router = useRouter();
 
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
@@ -149,22 +151,33 @@ export default function AccountsPage() {
                                 {acc.customerName}
                             </p>
                         )}
-                        {isAdmin && (
+                        {isStaff && (
                             <div className="flex gap-2 mt-4">
                                 <button
-                                    onClick={() => openEdit(acc)}
+                                    onClick={() => router.push(`/accounts/${acc.id}`)}
                                     className="flex-1 py-1.5 rounded-lg text-xs font-medium border"
-                                    style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                                    style={{ borderColor: "var(--border)", color: "var(--primary)" }}
                                 >
-                                    Edit
+                                    View Details
                                 </button>
-                                <button
-                                    onClick={() => handleDelete(acc.id)}
-                                    className="flex-1 py-1.5 rounded-lg text-xs font-medium"
-                                    style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-                                >
-                                    Delete
-                                </button>
+                                {isAdmin && (
+                                    <>
+                                        <button
+                                            onClick={() => openEdit(acc)}
+                                            className="flex-1 py-1.5 rounded-lg text-xs font-medium border"
+                                            style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(acc.id)}
+                                            className="flex-1 py-1.5 rounded-lg text-xs font-medium"
+                                            style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
