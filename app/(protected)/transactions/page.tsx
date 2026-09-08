@@ -50,7 +50,7 @@ export default function TransactionsPage() {
         createTransaction(selectedAccount.id, form)
             .then((tx) => {
                 setTransactions((prev) => [tx, ...prev]);
-                setSelectedAccount((a) => a ? { ...a, balance: tx.balance } : a);
+                setSelectedAccount((a) => a ? { ...a, balance: tx.balance ?? a.balance } : a);
                 setShowModal(false);
                 setForm(emptyForm);
             })
