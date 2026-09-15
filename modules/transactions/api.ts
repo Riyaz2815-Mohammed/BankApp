@@ -8,4 +8,4 @@ export const createTransaction = (accountId: string, data: TransactionRequest) =
     api.post<Transaction>(`/api/transactions`, { ...data, accountId }).then((r) => r.data);
 
 export const transfer = (data: TransferRequest) =>
-    api.post<TransferResponse>("/api/me/transfer", data).then((r) => r.data);
+    api.post<TransferResponse>("/api/transfer", data).then((r) => r.data);
