@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { getAccounts, getMyAccounts } from "@/modules/accounts/api";
+import { getAccounts } from "@/modules/accounts/api";
 import { getTransactions, createTransaction } from "@/modules/transactions/api";
 import { Account } from "@/modules/accounts/types";
 import { Transaction } from "@/modules/transactions/types";
@@ -26,8 +26,7 @@ export default function TransactionsPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        const load = isStaff ? getAccounts() : getMyAccounts();
-        load
+        getAccounts()
             .then(setAccounts)
             .catch(() => setError("Failed to load accounts"))
             .finally(() => setLoadingAccounts(false));

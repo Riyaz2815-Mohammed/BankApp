@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { getMyAccounts } from "@/modules/accounts/api";
+import { getAccounts } from "@/modules/accounts/api";
 import { lookupAccount } from "@/modules/beneficiaries/api";
 import { transfer } from "@/modules/transactions/api";
 import { Account } from "@/modules/accounts/types";
@@ -35,7 +35,7 @@ export default function TransferPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        getMyAccounts().then(setMyAccounts).catch(() => {});
+        getAccounts().then(setMyAccounts).catch(() => {});
     }, [status]);
 
     const selectedAccount = myAccounts.find((a) => a.id === fromAccountId) ?? null;

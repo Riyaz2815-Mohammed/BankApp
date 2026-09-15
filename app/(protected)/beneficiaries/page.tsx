@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { getMyBeneficiaries, addMyBeneficiary, removeMyBeneficiary, lookupAccount } from "@/modules/beneficiaries/api";
+import { getBeneficiaries, addBeneficiary, deleteBeneficiary, lookupAccount } from "@/modules/beneficiaries/api";
 import { Beneficiary, AccountLookup } from "@/modules/beneficiaries/types";
 import BeneficiaryList from "@/modules/beneficiaries/components/BeneficiaryList";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -26,7 +26,7 @@ export default function BeneficiariesPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        getMyBeneficiaries()
+        getBeneficiaries()
             .then(setBeneficiaries)
             .catch(() => setError("Failed to load beneficiaries"))
             .finally(() => setLoading(false));
@@ -59,7 +59,7 @@ export default function BeneficiariesPage() {
     const handleAdd = () => {
         if (!foundAccount || !nickname.trim()) return;
         setSaving(true);
-        addMyBeneficiary({ accountId: foundAccount.id, nickname: nickname.trim() })
+        addBeneficiary({ accountId: foundAccount.id, nickname: nickname.trim() })
             .then((b) => {
                 setBeneficiaries((prev) => [...prev, b]);
                 setShowModal(false);
@@ -71,7 +71,7 @@ export default function BeneficiariesPage() {
     const handleRemove = (id: string) => setConfirmRemove(id);
     const confirmRemoveAction = () => {
         if (!confirmRemove) return;
-        removeMyBeneficiary(confirmRemove)
+        deleteBeneficiary(confirmRemove)
             .then(() => setBeneficiaries((prev) => prev.filter((b) => b.id !== confirmRemove)))
             .catch(() => setError("Failed to remove beneficiary"))
             .finally(() => setConfirmRemove(null));

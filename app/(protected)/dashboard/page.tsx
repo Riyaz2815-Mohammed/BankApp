@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { getAccounts, getMyAccounts } from "@/modules/accounts/api";
+import { getAccounts } from "@/modules/accounts/api";
 import { getCustomers } from "@/modules/customers/api";
 
 export default function DashboardPage() {
@@ -17,8 +17,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        const loadAccounts = isStaff ? getAccounts() : getMyAccounts();
-        loadAccounts
+        getAccounts()
             .then((accounts) => {
                 setAccountCount(accounts.length);
                 setTotalBalance(accounts.reduce((sum, a) => sum + a.balance, 0));

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getAccounts, getMyAccounts, createAccount, updateAccount, deleteAccount } from "@/modules/accounts/api";
+import { getAccounts, createAccount, updateAccount, deleteAccount } from "@/modules/accounts/api";
 import { getCustomers } from "@/modules/customers/api";
 import { Account } from "@/modules/accounts/types";
 import { Customer } from "@/modules/customers/types";
@@ -37,8 +37,7 @@ export default function AccountsPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        const load = isStaff ? getAccounts() : getMyAccounts();
-        load
+        getAccounts()
             .then(setAccounts)
             .catch(() => setError("Failed to load accounts"))
             .finally(() => setLoading(false));
