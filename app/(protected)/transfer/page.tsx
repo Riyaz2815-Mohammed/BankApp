@@ -7,7 +7,7 @@ import { lookupAccount } from "@/modules/beneficiaries/api";
 import { transfer } from "@/modules/transactions/api";
 import { Account } from "@/modules/accounts/types";
 import { AccountLookup } from "@/modules/beneficiaries/types";
-import { TransferResponse } from "@/modules/transactions/types";
+import { PaymentResponse } from "@/modules/payments/types";
 
 const BANK_IFSC = "BNKX0001234";
 
@@ -30,7 +30,7 @@ export default function TransferPage() {
     const [amount, setAmount] = useState("");
 
     // Success
-    const [result, setResult] = useState<TransferResponse | null>(null);
+    const [result, setResult] = useState<PaymentResponse | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -284,38 +284,30 @@ export default function TransferPage() {
             {/* ── Success ── */}
             {step === "success" && result && (
                 <div className="rounded-xl p-8 text-center space-y-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto text-2xl" style={{ backgroundColor: "#D1FAE5" }}>
-                        ✓
-                    </div>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto text-2xl" style={{ backgroundColor: "#D1FAE5" }}>✓</div>
                     <div>
                         <p className="text-xl font-bold" style={{ color: "var(--success)" }}>₹{result.amount.toLocaleString()} Sent</p>
-                        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>to {result.recipientName} · {result.recipientAccountNo}</p>
+                        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>to {result.toAccountName} · {result.toAccountNo}</p>
                     </div>
                     <div className="text-left rounded-lg p-4 space-y-2 text-sm" style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)" }}>
                         <div className="flex justify-between">
-                            <span style={{ color: "var(--muted)" }}>Reference ID</span>
-                            <span className="font-mono text-xs" style={{ color: "var(--text)" }}>{result.referenceId.slice(0, 8).toUpperCase()}</span>
+                            <span style={{ color: "var(--muted)" }}>Payment ID</span>
+                            <span className="font-mono text-xs" style={{ color: "var(--text)" }}>{result.paymentId.slice(0, 8).toUpperCase()}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span style={{ color: "var(--muted)" }}>Remaining Balance</span>
-                            <span style={{ color: "var(--text)" }}>₹{result.remainingBalance.toLocaleString()}</span>
+                            <span style={{ color: "var(--muted)" }}>Status</span>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700">{result.status}</span>
                         </div>
                         <div className="flex justify-between">
                             <span style={{ color: "var(--muted)" }}>Date & Time</span>
                             <span style={{ color: "var(--text)" }}>
-                                {new Date(result.timestamp).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                                {new Date(result.initiatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                                 {" · "}
-                                {new Date(result.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                                {new Date(result.initiatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
                             </span>
                         </div>
                     </div>
-                    <button
-                        onClick={reset}
-                        className="w-full py-2.5 rounded-lg text-white text-sm font-semibold"
-                        style={{ backgroundColor: "var(--primary)" }}
-                    >
-                        New Transfer
-                    </button>
+                    <button onClick={reset} className="w-full py-2.5 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--primary)" }}>New Transfer</button>
                 </div>
             )}
         </div>
