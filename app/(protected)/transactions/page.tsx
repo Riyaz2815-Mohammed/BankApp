@@ -64,10 +64,10 @@ export default function TransactionsPage() {
                 <div>
                     <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Transactions</h2>
                     <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                        Select an account to view and create transactions
+                        Select an account to view transactions
                     </p>
                 </div>
-                {selectedAccount && (
+                {isAdmin && selectedAccount && (
                     <button
                         onClick={() => { setForm(emptyForm); setShowModal(true); }}
                         className="px-5 py-2 rounded-lg text-white text-sm font-semibold"
