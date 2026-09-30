@@ -17,5 +17,6 @@ export const config = {
         "/beneficiaries/:path*",
         "/payments/:path*",
         "/profile/:path*",
+        "/managers/:path*",
     ],
 };
