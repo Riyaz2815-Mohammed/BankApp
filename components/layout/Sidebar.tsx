@@ -5,14 +5,15 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const allNavItems = [
-    { label: "Dashboard",     href: "/dashboard",     icon: "⊞", staffOnly: false, userOnly: false },
-    { label: "Customers",     href: "/customers",     icon: "◉", staffOnly: true,  userOnly: false },
-    { label: "Accounts",      href: "/accounts",      icon: "◈", staffOnly: false, userOnly: false },
-    { label: "Transactions",  href: "/transactions",  icon: "↔", staffOnly: false, userOnly: false },
-    { label: "Payments",      href: "/payments",      icon: "⬡", staffOnly: true,  userOnly: false },
-    { label: "Transfer",      href: "/transfer",      icon: "➤", staffOnly: false, userOnly: true  },
-    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false, userOnly: true  },
-    { label: "Profile",       href: "/profile",       icon: "◷", staffOnly: false, userOnly: true  },
+    { label: "Dashboard",     href: "/dashboard",     icon: "⊞", staffOnly: false, userOnly: false, adminOnly: false },
+    { label: "Customers",     href: "/customers",     icon: "◉", staffOnly: true,  userOnly: false, adminOnly: false },
+    { label: "Managers",      href: "/managers",      icon: "◈", staffOnly: false, userOnly: false, adminOnly: true  },
+    { label: "Accounts",      href: "/accounts",      icon: "◆", staffOnly: false, userOnly: false, adminOnly: false },
+    { label: "Transactions",  href: "/transactions",  icon: "↔", staffOnly: false, userOnly: false, adminOnly: false },
+    { label: "Payments",      href: "/payments",      icon: "⬡", staffOnly: true,  userOnly: false, adminOnly: false },
+    { label: "Transfer",      href: "/transfer",      icon: "➤", staffOnly: false, userOnly: true,  adminOnly: false },
+    { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false, userOnly: true,  adminOnly: false },
+    { label: "Profile",       href: "/profile",       icon: "◷", staffOnly: false, userOnly: true,  adminOnly: false },
 ];
 
 export default function Sidebar() {
@@ -22,6 +23,7 @@ export default function Sidebar() {
     const isManager = session?.roles?.includes("BankManager") ?? false;
     const isStaff = isAdmin || isManager;
     const navItems = allNavItems.filter((item) => {
+        if (item.adminOnly && !isAdmin) return false;
         if (item.staffOnly && !isStaff) return false;
         if (item.userOnly && isStaff) return false;
         return true;
