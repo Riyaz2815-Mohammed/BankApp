@@ -9,8 +9,10 @@ const allNavItems = [
     { label: "Customers",     href: "/customers",     icon: "◉", staffOnly: true,  userOnly: false },
     { label: "Accounts",      href: "/accounts",      icon: "◈", staffOnly: false, userOnly: false },
     { label: "Transactions",  href: "/transactions",  icon: "↔", staffOnly: false, userOnly: false },
+    { label: "Payments",      href: "/payments",      icon: "⬡", staffOnly: true,  userOnly: false },
     { label: "Transfer",      href: "/transfer",      icon: "➤", staffOnly: false, userOnly: true  },
     { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false, userOnly: true  },
+    { label: "Profile",       href: "/profile",       icon: "◷", staffOnly: false, userOnly: true  },
 ];
 
 export default function Sidebar() {
