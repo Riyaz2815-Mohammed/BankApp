@@ -35,3 +35,20 @@ export interface RegisterUserResponse {
     keycloakUserId: string;
     message: string;
 }
+
+export interface CreateManagerRequest {
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    temporaryPassword: string;
+}
+
+export interface CreateManagerResponse {
+    keycloakId: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    message: string;
+}
