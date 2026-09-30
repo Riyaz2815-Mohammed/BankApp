@@ -52,3 +52,11 @@ export interface CreateManagerResponse {
     lastName: string;
     message: string;
 }
+
+export interface ManagerResponse {
+    id: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+}
