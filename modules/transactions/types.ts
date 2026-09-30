@@ -1,7 +1,7 @@
 export interface Transaction {
     id: string;
-    accountType: string;
-    customer_id: string;
+    transactionType: string;
+    accountId: string;
     balance: number;
     amount: number;
     timestamp: string;
