@@ -14,19 +14,9 @@ export interface TransactionRequest {
 }
 
 export interface TransferRequest {
+    paymentId: string;
     fromAccountId: string;
     recipientAccountNo: string;
     amount: number;
     note?: string;
-}
-
-export interface TransferResponse {
-    referenceId: string;
-    fromAccountNo: string;
-    remainingBalance: number;
-    recipientName: string;
-    recipientAccountNo: string;
-    amount: number;
-    note: string;
-    timestamp: string;
 }
