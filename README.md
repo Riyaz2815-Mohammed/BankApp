@@ -1,10 +1,10 @@
 # BankApp — Next.js Banking Frontend
 
-A banking portal built with Next.js 15, TypeScript, and Tailwind CSS. Authenticates users via Keycloak (OIDC) and consumes the Spring Boot Banking API. Supports three roles with distinct views and permissions.
+A banking portal built with Next.js 16, TypeScript, and Tailwind CSS. Authenticates users via Keycloak (OIDC) and consumes the Spring Boot Banking API. Supports three roles with distinct views and permissions.
 
 ## Tech Stack
 
-- **Next.js 15** — App Router, TypeScript, server components
+- **Next.js 16** — App Router, TypeScript, server components
 - **Tailwind CSS v4** — utility-first styling with CSS variables for theming
 - **NextAuth v5 (Auth.js)** — Keycloak OIDC integration, encrypted HttpOnly session cookie
 - **Axios** — API client with automatic Bearer token injection
