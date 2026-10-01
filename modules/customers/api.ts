@@ -5,6 +5,6 @@ export const getCustomers = () => api.get<Customer[]>("/api/v1/customers").then(
 export const getCustomer = (id: string) => api.get<Customer>(`/api/v1/customers/${id}`).then((r) => r.data);
 export const updateCustomer = (id: string, data: CustomerRequest) => api.put<Customer>(`/api/v1/customers/${id}`, data).then((r) => r.data);
 export const deleteCustomer = (id: string) => api.delete(`/api/v1/customers/${id}`);
-export const registerUser = (data: RegisterUserRequest) => api.post<RegisterUserResponse>("/api/v1/register", data).then((r) => r.data);
+export const registerUser = (data: RegisterUserRequest) => api.post<RegisterUserResponse>("/api/v2/customers", data).then((r) => r.data);
 export const createManager = (data: CreateManagerRequest) => api.post<CreateManagerResponse>("/api/v1/managers", data).then((r) => r.data);
 export const getManagers = () => api.get<ManagerResponse[]>("/api/v1/managers").then((r) => r.data);
