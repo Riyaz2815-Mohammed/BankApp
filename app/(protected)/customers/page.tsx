@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getCustomers, createCustomer, updateCustomer, deleteCustomer, registerUser, createManager } from "@/modules/customers/api";
+import { getCustomers, updateCustomer, deleteCustomer, registerUser, createManager } from "@/modules/customers/api";
 import { Customer, CustomerRequest, RegisterUserRequest, RegisterUserResponse, CreateManagerRequest, CreateManagerResponse } from "@/modules/customers/types";
 import CustomerRow from "@/modules/customers/components/CustomerRow";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const PAGE_SIZE = 5;
-const emptyForm: CustomerRequest = { pan: "", firstName: "", lastName: "", email: "", phoneNumber: "" };
 const emptyRegisterForm: RegisterUserRequest = { firstName: "", lastName: "", email: "", pan: "", phoneNumber: "", username: "", temporaryPassword: "" };
 const emptyManagerForm: CreateManagerRequest = { username: "", email: "", firstName: "", lastName: "", temporaryPassword: "" };
 
@@ -24,10 +23,6 @@ export default function CustomersPage() {
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
 
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState<Customer | null>(null);
-    const [form, setForm] = useState<CustomerRequest>(emptyForm);
-    const [saving, setSaving] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
     const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -51,12 +46,16 @@ export default function CustomersPage() {
     const totalPages = Math.max(1, Math.ceil(customers.length / PAGE_SIZE));
     const visibleCustomers = customers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-    const openCreate = () => { setEditing(null); setForm(emptyForm); setShowModal(true); };
+    const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<Customer | null>(null);
+    const [form, setForm] = useState<CustomerRequest>({ pan: "", firstName: "", lastName: "", email: "", phoneNumber: "" });
+    const [saving, setSaving] = useState(false);
+
     const openEdit = (c: Customer) => { setEditing(c); setForm({ pan: c.pan, firstName: c.firstName, lastName: c.lastName, email: c.email, phoneNumber: c.phoneNumber }); setShowModal(true); };
     const handleSave = () => {
+        if (!editing) return;
         setSaving(true);
-        const action = editing ? updateCustomer(editing.id, form) : createCustomer(form);
-        action.then((saved) => { setCustomers((prev) => editing ? prev.map((c) => c.id === editing.id ? saved : c) : [...prev, saved]); setShowModal(false); }).catch(() => setError("Failed to save customer")).finally(() => setSaving(false));
+        updateCustomer(editing.id, form).then((saved) => { setCustomers((prev) => prev.map((c) => c.id === editing.id ? saved : c)); setShowModal(false); }).catch(() => setError("Failed to save customer")).finally(() => setSaving(false));
     };
     const handleDelete = (id: string) => setConfirmDelete(id);
     const confirmDeleteAction = () => {
@@ -99,9 +98,6 @@ export default function CustomersPage() {
                         <button onClick={openManagerModal} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "#7C3AED" }}>+ Create Manager</button>
                     )}
                     <button onClick={openRegister} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--success, #16a34a)" }}>+ Register User</button>
-                    {isAdmin && (
-                        <button onClick={openCreate} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--primary)" }}>+ New Customer</button>
-                    )}
                 </div>
             </div>
 
@@ -144,7 +140,7 @@ export default function CustomersPage() {
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>{editing ? "Edit Customer" : "New Customer"}</h3>
+                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>Edit Customer</h3>
                         <div className="space-y-3">
                             <input placeholder="First Name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
                             <input placeholder="Last Name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
