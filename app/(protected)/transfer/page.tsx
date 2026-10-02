@@ -4,14 +4,20 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { getAccounts } from "@/modules/accounts/api";
 import { lookupAccount } from "@/modules/beneficiaries/api";
-import { transfer } from "@/modules/transactions/api";
+import { previewTransfer, transfer } from "@/modules/transactions/api";
 import { Account } from "@/modules/accounts/types";
 import { AccountLookup } from "@/modules/beneficiaries/types";
+import { TransferPreviewResponse } from "@/modules/transactions/types";
 import { PaymentResponse } from "@/modules/payments/types";
 
 const BANK_IFSC = "BNKX0001234";
 
 type Step = "lookup" | "details" | "confirm" | "success";
+
+function formatDateTime(ts: string) {
+    const d = new Date(ts);
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+}
 
 export default function TransferPage() {
     const { status } = useSession();
@@ -20,16 +26,17 @@ export default function TransferPage() {
     const [myAccounts, setMyAccounts] = useState<Account[]>([]);
     const [error, setError] = useState<string | null>(null);
 
-    // Step 1 — lookup
     const [recipientAccountNo, setRecipientAccountNo] = useState("");
     const [searching, setSearching] = useState(false);
     const [recipient, setRecipient] = useState<AccountLookup | null>(null);
 
-    // Step 2 — details
     const [fromAccountId, setFromAccountId] = useState("");
     const [amount, setAmount] = useState("");
+    const [note, setNote] = useState("");
 
-    // Success
+    const [preview, setPreview] = useState<TransferPreviewResponse | null>(null);
+    const [previewing, setPreviewing] = useState(false);
+
     const [result, setResult] = useState<PaymentResponse | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -46,27 +53,30 @@ export default function TransferPage() {
         setSearching(true);
         setError(null);
         lookupAccount(trimmed)
-            .then((found) => {
-                setRecipient(found);
-                setStep("details");
-            })
+            .then((found) => { setRecipient(found); setStep("details"); })
             .catch(() => setError("No account found with that account number."))
             .finally(() => setSearching(false));
+    };
+
+    const handleReview = () => {
+        if (!recipient || !fromAccountId || !amount) return;
+        setPreviewing(true);
+        setError(null);
+        previewTransfer(fromAccountId, recipient.accountNo, Number(amount))
+            .then((p) => { setPreview(p); setStep("confirm"); })
+            .catch((err) => {
+                const msg = err?.response?.data?.message ?? "Could not load transfer preview. Please try again.";
+                setError(typeof msg === "string" ? msg : "Could not load transfer preview.");
+            })
+            .finally(() => setPreviewing(false));
     };
 
     const handleConfirm = () => {
         if (!recipient || !fromAccountId || !amount) return;
         setSubmitting(true);
         setError(null);
-        transfer({
-            fromAccountId,
-            recipientAccountNo: recipient.accountNo,
-            amount: Number(amount),
-        })
-            .then((res) => {
-                setResult(res);
-                setStep("success");
-            })
+        transfer({ fromAccountId, recipientAccountNo: recipient.accountNo, amount: Number(amount), note: note.trim() || undefined })
+            .then((res) => { setResult(res); setStep("success"); })
             .catch((err) => {
                 const msg = err?.response?.data?.message ?? err?.response?.data ?? "Transfer failed. Please try again.";
                 setError(typeof msg === "string" ? msg : "Transfer failed. Please try again.");
@@ -80,6 +90,8 @@ export default function TransferPage() {
         setRecipient(null);
         setFromAccountId("");
         setAmount("");
+        setNote("");
+        setPreview(null);
         setResult(null);
         setError(null);
     };
@@ -91,7 +103,6 @@ export default function TransferPage() {
                 <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>Send money to any account in this bank</p>
             </div>
 
-            {/* Step indicator */}
             {step !== "success" && (
                 <div className="flex items-center gap-2">
                     {(["lookup", "details", "confirm"] as Step[]).map((s, i) => {
@@ -101,13 +112,7 @@ export default function TransferPage() {
                         const active = s === step;
                         return (
                             <div key={s} className="flex items-center gap-2">
-                                <div
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold`}
-                                    style={{
-                                        backgroundColor: done ? "var(--success)" : active ? "var(--primary)" : "var(--border)",
-                                        color: done || active ? "#fff" : "var(--muted)",
-                                    }}
-                                >
+                                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: done ? "var(--success)" : active ? "var(--primary)" : "var(--border)", color: done || active ? "#fff" : "var(--muted)" }}>
                                     {done ? "✓" : i + 1}
                                 </div>
                                 <span className="text-xs font-medium capitalize" style={{ color: active ? "var(--text)" : "var(--muted)" }}>
@@ -126,7 +131,7 @@ export default function TransferPage() {
                 </div>
             )}
 
-            {/* ── Step 1: Lookup ── */}
+            {/* Step 1: Lookup */}
             {step === "lookup" && (
                 <div className="rounded-xl p-6 space-y-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
                     <h3 className="font-semibold" style={{ color: "var(--text)" }}>Enter recipient details</h3>
@@ -144,26 +149,16 @@ export default function TransferPage() {
                     </div>
                     <div>
                         <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>IFSC Code</label>
-                        <input
-                            value={BANK_IFSC}
-                            readOnly
-                            className="w-full px-4 py-2 rounded-lg border text-sm font-mono"
-                            style={{ borderColor: "var(--border)", color: "var(--muted)", backgroundColor: "#F8FAFC" }}
-                        />
+                        <input value={BANK_IFSC} readOnly className="w-full px-4 py-2 rounded-lg border text-sm font-mono" style={{ borderColor: "var(--border)", color: "var(--muted)", backgroundColor: "#F8FAFC" }} />
                         <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>All accounts are within BankApp — IFSC is the same for all.</p>
                     </div>
-                    <button
-                        onClick={handleLookup}
-                        disabled={searching || !recipientAccountNo.trim()}
-                        className="w-full py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50"
-                        style={{ backgroundColor: "var(--primary)" }}
-                    >
+                    <button onClick={handleLookup} disabled={searching || !recipientAccountNo.trim()} className="w-full py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: "var(--primary)" }}>
                         {searching ? "Looking up..." : "Find Account"}
                     </button>
                 </div>
             )}
 
-            {/* ── Step 2: Amount + source account ── */}
+            {/* Step 2: Amount + source account */}
             {step === "details" && recipient && (
                 <div className="space-y-4">
                     <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -171,88 +166,79 @@ export default function TransferPage() {
                         <p className="font-semibold" style={{ color: "var(--text)" }}>{recipient.accountHolderName}</p>
                         <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>{recipient.accountType} · {recipient.accountNo} · {BANK_IFSC}</p>
                     </div>
-
                     <div className="rounded-xl p-6 space-y-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
                         <div>
                             <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>From Account</label>
-                            <select
-                                value={fromAccountId}
-                                onChange={(e) => setFromAccountId(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            >
+                            <select value={fromAccountId} onChange={(e) => setFromAccountId(e.target.value)} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}>
                                 <option value="">Select your account</option>
                                 {myAccounts.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.accountType} · {a.accountNo} — ₹{a.balance.toLocaleString()}
-                                    </option>
+                                    <option key={a.id} value={a.id}>{a.accountType} · {a.accountNo} — ₹{a.balance.toLocaleString()}</option>
                                 ))}
                             </select>
                         </div>
-
                         <div>
                             <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Amount (₹)</label>
-                            <input
-                                type="number"
-                                placeholder="e.g. 5000"
-                                min={1}
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                            />
+                            <input type="number" placeholder="e.g. 5000" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
                             {selectedAccount && amount && Number(amount) > selectedAccount.balance && (
-                                <p className="text-xs mt-1" style={{ color: "var(--danger)" }}>
-                                    Insufficient balance. Available: ₹{selectedAccount.balance.toLocaleString()}
-                                </p>
+                                <p className="text-xs mt-1" style={{ color: "var(--danger)" }}>Insufficient balance. Available: ₹{selectedAccount.balance.toLocaleString()}</p>
                             )}
                         </div>
-
-
+                        <div>
+                            <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Note (optional)</label>
+                            <input placeholder="e.g. Rent payment" value={note} onChange={(e) => setNote(e.target.value)} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
+                        </div>
                     </div>
-
                     <div className="flex gap-3">
+                        <button onClick={() => { setStep("lookup"); setError(null); }} className="flex-1 py-2.5 rounded-lg text-sm border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>Back</button>
                         <button
-                            onClick={() => { setStep("lookup"); setError(null); }}
-                            className="flex-1 py-2.5 rounded-lg text-sm border"
-                            style={{ borderColor: "var(--border)", color: "var(--muted)" }}
-                        >
-                            Back
-                        </button>
-                        <button
-                            onClick={() => { setError(null); setStep("confirm"); }}
-                            disabled={!fromAccountId || !amount || Number(amount) <= 0 || (!!selectedAccount && Number(amount) > selectedAccount.balance)}
+                            onClick={handleReview}
+                            disabled={previewing || !fromAccountId || !amount || Number(amount) <= 0 || (!!selectedAccount && Number(amount) > selectedAccount.balance)}
                             className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50"
                             style={{ backgroundColor: "var(--primary)" }}
                         >
-                            Review Transfer
+                            {previewing ? "Loading preview..." : "Review Transfer"}
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* ── Step 3: Confirm ── */}
-            {step === "confirm" && recipient && selectedAccount && (
+            {/* Step 3: Confirm (with server-confirmed details) */}
+            {step === "confirm" && recipient && selectedAccount && preview && (
                 <div className="space-y-4">
                     <div className="rounded-xl p-6 space-y-3" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                        <h3 className="font-semibold mb-2" style={{ color: "var(--text)" }}>Review your transfer</h3>
+                        <h3 className="font-semibold mb-2" style={{ color: "var(--text)" }}>Confirm your transfer</h3>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span style={{ color: "var(--muted)" }}>From</span>
-                                <span style={{ color: "var(--text)" }}>{selectedAccount.accountType} · {selectedAccount.accountNo}</span>
+                                <span style={{ color: "var(--text)" }}>{selectedAccount.accountType} · {preview.fromAccountNo}</span>
                             </div>
                             <div className="flex justify-between">
+                                <span style={{ color: "var(--muted)" }}>Available balance</span>
+                                <span style={{ color: "var(--text)" }}>₹{preview.fromAccountBalance.toLocaleString()}</span>
+                            </div>
+                            <div className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
+                            <div className="flex justify-between">
                                 <span style={{ color: "var(--muted)" }}>To</span>
-                                <span style={{ color: "var(--text)" }}>{recipient.accountHolderName}</span>
+                                <span style={{ color: "var(--text)" }}>{preview.toAccountName}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span style={{ color: "var(--muted)" }}>Account</span>
-                                <span style={{ color: "var(--text)" }}>{recipient.accountNo} · {BANK_IFSC}</span>
+                                <span style={{ color: "var(--text)" }}>{preview.toAccountNo} · {BANK_IFSC}</span>
+                            </div>
+                            {note && (
+                                <div className="flex justify-between">
+                                    <span style={{ color: "var(--muted)" }}>Note</span>
+                                    <span style={{ color: "var(--text)" }}>{note}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between">
+                                <span style={{ color: "var(--muted)" }}>Date & Time</span>
+                                <span style={{ color: "var(--text)" }}>{formatDateTime(preview.estimatedAt)}</span>
                             </div>
                             <div className="h-px my-1" style={{ backgroundColor: "var(--border)" }} />
                             <div className="flex justify-between font-semibold text-base">
                                 <span style={{ color: "var(--muted)" }}>Amount</span>
-                                <span style={{ color: "var(--danger)" }}>-₹{Number(amount).toLocaleString()}</span>
+                                <span style={{ color: "var(--danger)" }}>-₹{preview.amount.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -262,26 +248,15 @@ export default function TransferPage() {
                         </div>
                     )}
                     <div className="flex gap-3">
-                        <button
-                            onClick={() => { setStep("details"); setError(null); }}
-                            className="flex-1 py-2.5 rounded-lg text-sm border"
-                            style={{ borderColor: "var(--border)", color: "var(--muted)" }}
-                        >
-                            Back
-                        </button>
-                        <button
-                            onClick={handleConfirm}
-                            disabled={submitting}
-                            className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50"
-                            style={{ backgroundColor: "var(--primary)" }}
-                        >
+                        <button onClick={() => { setStep("details"); setError(null); }} className="flex-1 py-2.5 rounded-lg text-sm border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>Back</button>
+                        <button onClick={handleConfirm} disabled={submitting} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: "var(--primary)" }}>
                             {submitting ? "Processing..." : "Confirm & Transfer"}
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* ── Success ── */}
+            {/* Success */}
             {step === "success" && result && (
                 <div className="rounded-xl p-8 text-center space-y-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
                     <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto text-2xl" style={{ backgroundColor: "#D1FAE5" }}>✓</div>
@@ -300,12 +275,14 @@ export default function TransferPage() {
                         </div>
                         <div className="flex justify-between">
                             <span style={{ color: "var(--muted)" }}>Date & Time</span>
-                            <span style={{ color: "var(--text)" }}>
-                                {new Date(result.initiatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                                {" · "}
-                                {new Date(result.initiatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
-                            </span>
+                            <span style={{ color: "var(--text)" }}>{formatDateTime(result.completedAt ?? result.initiatedAt)}</span>
                         </div>
+                        {result.note && (
+                            <div className="flex justify-between">
+                                <span style={{ color: "var(--muted)" }}>Note</span>
+                                <span style={{ color: "var(--text)" }}>{result.note}</span>
+                            </div>
+                        )}
                     </div>
                     <button onClick={reset} className="w-full py-2.5 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--primary)" }}>New Transfer</button>
                 </div>
