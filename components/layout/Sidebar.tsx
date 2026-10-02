@@ -10,7 +10,7 @@ const allNavItems = [
     { label: "Managers",      href: "/managers",      icon: "◈", staffOnly: false, userOnly: false, adminOnly: true  },
     { label: "Accounts",      href: "/accounts",      icon: "◆", staffOnly: false, userOnly: false, adminOnly: false },
     { label: "Transactions",  href: "/transactions",  icon: "↔", staffOnly: false, userOnly: false, adminOnly: false },
-    { label: "Payments",      href: "/payments",      icon: "⬡", staffOnly: true,  userOnly: false, adminOnly: false },
+    { label: "Payments",      href: "/payments",      icon: "⬡", staffOnly: false, userOnly: false, adminOnly: false },
     { label: "Transfer",      href: "/transfer",      icon: "➤", staffOnly: false, userOnly: true,  adminOnly: false },
     { label: "Beneficiaries", href: "/beneficiaries", icon: "◎", staffOnly: false, userOnly: true,  adminOnly: false },
     { label: "Profile",       href: "/profile",       icon: "◷", staffOnly: false, userOnly: true,  adminOnly: false },
