@@ -1,30 +1,28 @@
 "use client";
 
-import { useState } from "react";
 import { Transaction } from "../types";
 
 interface Props {
     transactions: Transaction[];
+    page: number;
+    totalPages: number;
+    total: number;
+    onPrev: () => void;
+    onNext: () => void;
 }
-
-const PAGE_SIZE = 5;
 
 function formatDateTime(ts: string) {
     const d = new Date(ts);
     return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
-export default function TransactionList({ transactions }: Props) {
-    const [page, setPage] = useState(1);
-    const totalPages = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
-    const visible = transactions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
+export default function TransactionList({ transactions, page, totalPages, total, onPrev, onNext }: Props) {
     if (transactions.length === 0) return <p className="text-sm" style={{ color: "var(--muted)" }}>No transactions found.</p>;
 
     return (
         <div className="space-y-3">
             <div className="rounded-xl overflow-hidden shadow-sm" style={{ border: "1px solid var(--border)" }}>
-                <div style={{ maxHeight: "320px", overflowY: "auto" }}>
+                <div style={{ maxHeight: "380px", overflowY: "auto" }}>
                     <table className="w-full text-sm" style={{ backgroundColor: "var(--surface)", borderCollapse: "separate", borderSpacing: 0 }}>
                         <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
                             <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "#F8FAFC" }}>
@@ -36,7 +34,7 @@ export default function TransactionList({ transactions }: Props) {
                             </tr>
                         </thead>
                         <tbody>
-                            {visible.map((tx) => (
+                            {transactions.map((tx) => (
                                 <tr key={tx.id} style={{ borderBottom: "1px solid var(--border)" }}>
                                     <td className="px-5 py-3">
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${tx.transactionType === "CREDIT" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{tx.transactionType}</span>
@@ -52,10 +50,10 @@ export default function TransactionList({ transactions }: Props) {
                 </div>
             </div>
             <div className="flex items-center justify-between px-1">
-                <span className="text-xs" style={{ color: "var(--muted)" }}>Page {page} of {totalPages} · {transactions.length} records</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>Page {page + 1} of {Math.max(1, totalPages)} · {total} records</span>
                 <div className="flex gap-2">
-                    <button onClick={() => setPage((p) => p - 1)} disabled={page === 1} className="px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-40" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Prev</button>
-                    <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages} className="px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-40" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Next</button>
+                    <button onClick={onPrev} disabled={page === 0} className="px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-40" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Prev</button>
+                    <button onClick={onNext} disabled={page >= totalPages - 1} className="px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-40" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Next</button>
                 </div>
             </div>
         </div>
