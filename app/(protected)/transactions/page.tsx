@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { getAccounts } from "@/modules/accounts/api";
 import { getTransactions } from "@/modules/transactions/api";
@@ -8,12 +8,17 @@ import { Account } from "@/modules/accounts/types";
 import { Transaction } from "@/modules/transactions/types";
 import TransactionList from "@/modules/transactions/components/TransactionList";
 
+const PAGE_SIZE = 10;
+
 export default function TransactionsPage() {
     const { data: session, status } = useSession();
     const isStaff = (session?.roles?.includes("admin") || session?.roles?.includes("BankManager")) ?? false;
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [total, setTotal] = useState(0);
     const [loadingAccounts, setLoadingAccounts] = useState(true);
     const [loadingTx, setLoadingTx] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -23,12 +28,25 @@ export default function TransactionsPage() {
         getAccounts().then(setAccounts).catch(() => setError("Failed to load accounts")).finally(() => setLoadingAccounts(false));
     }, [status, isStaff]);
 
+    const fetchTransactions = useCallback((account: Account, p: number) => {
+        setLoadingTx(true);
+        setError(null);
+        getTransactions(account.id, p, PAGE_SIZE)
+            .then((data) => {
+                setTransactions(data.content);
+                setTotalPages(data.totalPages);
+                setTotal(data.totalElements);
+                setPage(data.number);
+            })
+            .catch(() => setError("Failed to load transactions"))
+            .finally(() => setLoadingTx(false));
+    }, []);
+
     const selectAccount = (account: Account) => {
         setSelectedAccount(account);
         setTransactions([]);
-        setError(null);
-        setLoadingTx(true);
-        getTransactions(account.id).then(setTransactions).catch(() => setError("Failed to load transactions")).finally(() => setLoadingTx(false));
+        setPage(0);
+        fetchTransactions(account, 0);
     };
 
     return (
@@ -59,7 +77,18 @@ export default function TransactionsPage() {
             {selectedAccount && (
                 <div className="space-y-3">
                     <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>Transactions — {selectedAccount.accountType} ({selectedAccount.accountNo})</h3>
-                    {loadingTx ? <p className="text-sm" style={{ color: "var(--muted)" }}>Loading...</p> : <TransactionList transactions={transactions} />}
+                    {loadingTx ? (
+                        <p className="text-sm" style={{ color: "var(--muted)" }}>Loading...</p>
+                    ) : (
+                        <TransactionList
+                            transactions={transactions}
+                            page={page}
+                            totalPages={totalPages}
+                            total={total}
+                            onPrev={() => fetchTransactions(selectedAccount, page - 1)}
+                            onNext={() => fetchTransactions(selectedAccount, page + 1)}
+                        />
+                    )}
                 </div>
             )}
         </div>
