@@ -8,9 +8,13 @@ export interface Transaction {
     description?: string;
 }
 
-export interface TransactionRequest {
-    type: string;
+export interface TransferPreviewResponse {
+    fromAccountNo: string;
+    fromAccountBalance: number;
+    toAccountNo: string;
+    toAccountName: string;
     amount: number;
+    estimatedAt: string;
 }
 
 export interface TransferRequest {
