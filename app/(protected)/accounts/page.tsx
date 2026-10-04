@@ -26,7 +26,7 @@ export default function AccountsPage() {
     const [customerSearch, setCustomerSearch] = useState("");
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [showDropdown, setShowDropdown] = useState(false);
-    const [createForm, setCreateForm] = useState({ accountNo: "", accountType: "SAVINGS", balance: 0 });
+    const [createForm, setCreateForm] = useState({ accountType: "SAVINGS", balance: 0 });
     const [creating, setCreating] = useState(false);
 
     // Edit modal
@@ -44,7 +44,7 @@ export default function AccountsPage() {
     }, [status, isAdmin]);
 
     const openCreate = () => {
-        setCreateForm({ accountNo: "", accountType: "SAVINGS", balance: 0 });
+        setCreateForm({ accountType: "SAVINGS", balance: 0 });
         setSelectedCustomer(null);
         setCustomerSearch("");
         setShowDropdown(false);
@@ -75,7 +75,6 @@ export default function AccountsPage() {
         if (!editingAccount) return;
         setSaving(true);
         updateAccount(editingAccount.id, {
-            accountNo: editingAccount.accountNo,
             accountType: editForm.accountType,
             balance: editForm.balance,
             customerId: editingAccount.customerId,
@@ -266,17 +265,6 @@ export default function AccountsPage() {
                             </div>
 
                             <div>
-                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Number</label>
-                                <input
-                                    placeholder="e.g. SB009001"
-                                    value={createForm.accountNo}
-                                    onChange={(e) => setCreateForm({ ...createForm, accountNo: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                                />
-                            </div>
-
-                            <div>
                                 <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Type</label>
                                 <select
                                     value={createForm.accountType}
@@ -313,7 +301,7 @@ export default function AccountsPage() {
                             </button>
                             <button
                                 onClick={handleCreate}
-                                disabled={creating || !selectedCustomer || !createForm.accountNo}
+                                disabled={creating || !selectedCustomer}
                                 className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
                                 style={{ backgroundColor: "var(--primary)" }}
                             >
