@@ -23,6 +23,8 @@ export interface RegisterUserRequest {
     phoneNumber: string;
     username: string;
     temporaryPassword: string;
+    accountType: string;
+    initialBalance: number;
 }
 
 export interface RegisterUserResponse {
@@ -33,7 +35,10 @@ export interface RegisterUserResponse {
     pan: string;
     phoneNumber: string;
     keycloakUserId: string;
-    message: string;
+    accountId: string;
+    accountNo: string;
+    accountType: string;
+    balance: number;
 }
 
 export interface CreateManagerRequest {
