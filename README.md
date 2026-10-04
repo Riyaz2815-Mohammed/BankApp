@@ -2,13 +2,16 @@
 
 A banking portal built with Next.js 16, TypeScript, and Tailwind CSS. Authenticates users via Keycloak (OIDC) and consumes the Spring Boot Banking API. Supports three roles with distinct views and permissions.
 
+Everything is served behind an **nginx / OpenResty gateway** at `https://localhost` — the frontend, the Keycloak login page (`/auth/*`), and the backend API (`/api/*`) all share one origin. The browser never talks to Next.js, Keycloak, or Spring Boot directly.
+
 ## Tech Stack
 
 - **Next.js 16** — App Router, TypeScript, server components
 - **Tailwind CSS v4** — utility-first styling with CSS variables for theming
 - **NextAuth v5 (Auth.js)** — Keycloak OIDC integration, encrypted HttpOnly session cookie
-- **Axios** — API client with automatic Bearer token injection
+- **Axios** — API client with automatic Bearer token injection and `ApiResponse<T>` unwrapping
 - **Keycloak** — identity provider, RBAC source of truth
+- **nginx / OpenResty** — single public entry point; validates the JWT at the edge (Lua) before proxying `/api/*` to Spring Boot
 
 ## Roles and Access
 
@@ -64,15 +67,24 @@ Role is embedded in the Keycloak JWT and read by NextAuth into the session. All 
 ## How Authentication Works
 
 ```
-1. User visits the app → redirected to Keycloak login page
-2. User enters credentials → Keycloak issues JWT (contains roles, email, expiry)
-3. NextAuth stores tokens in an encrypted HttpOnly session cookie
-4. Every API call → Axios interceptor adds: Authorization: Bearer <access_token>
-5. Spring Boot validates JWT signature using Keycloak's public key
-6. Spring extracts roles and enforces access rules
+1. User visits the app → middleware redirects to /login → "Sign In" sends them to
+   https://localhost/auth/realms/bankapp/... (nginx proxies /auth/* to Keycloak)
+2. User enters credentials → Keycloak redirects back to
+   https://localhost/api/auth/callback/keycloak with a one-time auth code
+3. NextAuth (server-side) exchanges the code for tokens at the SAME public issuer,
+   https://localhost/auth/realms/bankapp. The container's /etc/hosts remaps
+   localhost → the gateway IP, so this backchannel call is routed THROUGH nginx.
+4. NextAuth stores access/id/refresh tokens + roles in an encrypted HttpOnly cookie
+5. Every API call → Axios interceptor adds: Authorization: Bearer <access_token>
+6. nginx validates the JWT signature (RS256, Keycloak public key, Lua) and injects
+   X-User-Roles / X-User-Email / X-User-Sub headers before proxying to Spring Boot
+7. Spring Boot trusts those headers and enforces role-based access — it never parses
+   the JWT itself
 ```
 
-The frontend never stores passwords. The JWT never touches client-side JavaScript — it lives in the HttpOnly cookie and is forwarded server-side.
+The frontend never stores passwords. Keycloak and Spring Boot are never reached directly — all traffic, including the server-side token exchange, flows through the nginx gateway so the issuer (`https://localhost/auth/realms/bankapp`) matches everywhere and the JWT `iss` claim lines up.
+
+> **Note:** the access token is readable client-side via the NextAuth session (`session.accessToken`) — that's how the Axios interceptor attaches `Authorization: Bearer <token>`. The token travels over HTTPS; the session cookie itself is HttpOnly.
 
 ## Project Structure
 
@@ -104,7 +116,12 @@ components/
 
 lib/
   auth.ts                     — NextAuth config, Keycloak provider, role extraction
-  api.ts                      — Axios instance with JWT interceptor
+  api.ts                      — Axios instance: Bearer injection + ApiResponse<T>
+                                unwrap + auto sign-out on 401/403
+
+docker-entrypoint.sh          — patches /etc/hosts (localhost → gateway IP) so the
+                                server-side OIDC backchannel is routed through nginx,
+                                then starts the Next.js server
 
 modules/
   customers/                  — types, api calls, components
@@ -119,34 +136,44 @@ middleware.ts                 — protects all authenticated routes
 
 ## Environment Variables
 
-Create a `.env` file in the project root (see `.env.example` in the Spring Boot repo for all variables):
+Copy `.env.example` to `.env`. Everything resolves to `https://localhost` (the nginx gateway) — there are no raw service ports in the browser-facing config.
 
 ```env
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-random-secret
+# Build args (baked into the client bundle)
+NEXT_PUBLIC_API_URL=https://localhost
+NEXT_PUBLIC_KEYCLOAK_ISSUER=https://localhost/auth/realms/bankapp
+NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=bankapp-frontend
+NEXT_PUBLIC_NEXTAUTH_URL=https://localhost
 
+# Server-side runtime
+NEXTAUTH_URL=https://localhost
+NEXTAUTH_SECRET=change-this-to-any-long-random-string   # also passed as AUTH_SECRET
 KEYCLOAK_CLIENT_ID=bankapp-frontend
-KEYCLOAK_CLIENT_SECRET=your-client-secret
-KEYCLOAK_ISSUER=http://localhost:8180/realms/bankapp
-KEYCLOAK_INTERNAL_URL=http://keycloak:8080/realms/bankapp
-
+KEYCLOAK_CLIENT_SECRET=get-this-from-keycloak-admin-console
+KEYCLOAK_ISSUER=https://localhost/auth/realms/bankapp
 AUTH_TRUST_HOST=true
+NODE_ENV=development
 ```
+
+In `docker-compose.yml` the Next.js container also gets `NODE_EXTRA_CA_CERTS=/app/certs/localhost.crt` so Node trusts the gateway's self-signed TLS cert on the server-side OIDC backchannel.
 
 ## Running with Docker
 
 ```bash
-# From the SpringBOOOO/ directory (where docker-compose.yml lives)
+# From the SpringBOOOO/ directory (where docker-compose.yml lives) — brings up the
+# whole stack: gateway, nextjs, keycloak, spring-boot, postgres
 docker compose up --build -d
 ```
 
-Frontend runs on `http://localhost:3000`. Sign in with your Keycloak credentials.
+The app is served at **https://localhost** (accept the self-signed cert warning). Next.js itself runs internally on `:3000` and is never exposed to the host — only nginx is (`80`, `443`). Sign in with your Keycloak credentials.
+
+> When you change `BankApp/conf`-level files that are baked into images (e.g. the gateway config), rebuild that service: `docker compose up --build -d gateway`.
 
 ## Backend
 
 Spring Boot API repo: [Banfico-Training](https://github.com/Riyaz2815-Mohammed/Banfico-Training)
 
-Runs on `http://localhost:8080`. All endpoints except `/api/v1/health` and `/api/v1/info` require a valid Keycloak JWT.
+Reached at `https://localhost/api/*` through the gateway. nginx validates the Keycloak JWT and injects `X-User-Roles` before proxying to Spring Boot (internal `:8080`). All endpoints except `/api/v1/health` and `/api/v1/info` require a valid JWT.
 
 ## Author
 
