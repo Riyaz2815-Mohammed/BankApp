@@ -15,7 +15,12 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        if (response.data && typeof response.data === "object" && "data" in response.data && "status" in response.data) {
+            response.data = response.data.data;
+        }
+        return response;
+    },
     async (error) => {
         const status = error.response?.status;
         if (status === 401 || status === 403) {
