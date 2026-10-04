@@ -11,9 +11,11 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
     }
 }
 
-// KEYCLOAK_ISSUER        — public URL the browser uses (localhost:8180 or EC2 IP)
-// KEYCLOAK_INTERNAL_URL  — Docker-internal URL for server-side token exchange (keycloak:8080)
-//                          Only needed when Next.js runs inside Docker. Leave unset for native dev.
+// KEYCLOAK_ISSUER        — public URL the browser uses (https://localhost/auth/realms/bankapp)
+// KEYCLOAK_INTERNAL_URL  — points to the nginx internal proxy (http://gateway:8081/auth/realms/bankapp)
+//                          nginx:8081 injects X-Forwarded-Proto:https + X-Forwarded-Host:localhost
+//                          so Keycloak generates tokens with the public issuer even on backchannel
+//                          calls.  Leave unset for native dev (Next.js reaches Keycloak directly).
 function buildKeycloakProvider() {
     const publicIssuer = process.env.KEYCLOAK_ISSUER!;
     const internalBase = process.env.KEYCLOAK_INTERNAL_URL;
@@ -25,14 +27,13 @@ function buildKeycloakProvider() {
     }) as OIDCConfig<Record<string, unknown>>;
 
     if (internalBase) {
-        // Browser follows the public authorization URL; server calls go through internal Docker DNS.
         base.authorization = {
             url: `${publicIssuer}/protocol/openid-connect/auth`,
             params: { scope: "openid email profile" },
         };
-        base.token = { url: `${internalBase}/protocol/openid-connect/token` };
+        base.token    = { url: `${internalBase}/protocol/openid-connect/token` };
         base.userinfo = { url: `${internalBase}/protocol/openid-connect/userinfo` };
-        (base as unknown as Record<string, unknown>).jwks_endpoint =
+        (base as unknown as Record<string, unknown>).jwks_uri =
             `${internalBase}/protocol/openid-connect/certs`;
         delete (base as unknown as Record<string, unknown>).wellKnown;
     }
