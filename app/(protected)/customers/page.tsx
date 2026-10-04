@@ -9,7 +9,7 @@ import CustomerRow from "@/modules/customers/components/CustomerRow";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const PAGE_SIZE = 5;
-const emptyRegisterForm: RegisterUserRequest = { firstName: "", lastName: "", email: "", pan: "", phoneNumber: "", username: "", temporaryPassword: "" };
+const emptyRegisterForm: RegisterUserRequest = { firstName: "", lastName: "", email: "", pan: "", phoneNumber: "", username: "", temporaryPassword: "", accountType: "SAVINGS", initialBalance: 0 };
 const emptyManagerForm: CreateManagerRequest = { username: "", email: "", firstName: "", lastName: "", temporaryPassword: "" };
 
 export default function CustomersPage() {
@@ -164,12 +164,15 @@ export default function CustomersPage() {
                         {registerResult ? (
                             <>
                                 <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>User Registered</h3>
-                                <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>{registerResult.message}</p>
+                                <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>Customer and account created successfully.</p>
                                 <div className="rounded-lg p-4 space-y-2 text-sm mb-4" style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)" }}>
                                     <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Name</span><span style={{ color: "var(--text)" }}>{registerResult.firstName} {registerResult.lastName}</span></div>
                                     <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Email</span><span style={{ color: "var(--text)" }}>{registerResult.email}</span></div>
                                     <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Username</span><span className="font-mono text-xs" style={{ color: "var(--text)" }}>{registerForm.username}</span></div>
                                     <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Temp Password</span><span className="font-mono text-xs" style={{ color: "var(--text)" }}>{registerForm.temporaryPassword}</span></div>
+                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Account No</span><span className="font-mono text-xs" style={{ color: "var(--text)" }}>{registerResult.accountNo}</span></div>
+                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Account Type</span><span style={{ color: "var(--text)" }}>{registerResult.accountType}</span></div>
+                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Balance</span><span style={{ color: "var(--text)" }}>₹{registerResult.balance.toLocaleString()}</span></div>
                                 </div>
                                 <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>Share these credentials with the user. They will be prompted to change their password on first login.</p>
                                 <button onClick={() => { setShowRegisterModal(false); setRegisterResult(null); }} className="w-full py-2 rounded-lg text-sm text-white font-semibold" style={{ backgroundColor: "var(--primary)" }}>Done</button>
@@ -188,6 +191,14 @@ export default function CustomersPage() {
                                     <input placeholder="Phone Number" value={registerForm.phoneNumber} onChange={(e) => setRegisterForm({ ...registerForm, phoneNumber: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
                                     <input placeholder="Username (for login)" value={registerForm.username} onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
                                     <input placeholder="Temporary Password" value={registerForm.temporaryPassword} onChange={(e) => setRegisterForm({ ...registerForm, temporaryPassword: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <select value={registerForm.accountType} onChange={(e) => setRegisterForm({ ...registerForm, accountType: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}>
+                                            <option value="SAVINGS">SAVINGS</option>
+                                            <option value="CURRENT">CURRENT</option>
+                                            <option value="FIXED">FIXED</option>
+                                        </select>
+                                        <input type="number" placeholder="Opening Balance (₹)" min={0} value={registerForm.initialBalance || ""} onChange={(e) => setRegisterForm({ ...registerForm, initialBalance: Number(e.target.value) })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
+                                    </div>
                                 </div>
                                 <div className="flex gap-3 mt-6">
                                     <button onClick={() => setShowRegisterModal(false)} className="flex-1 py-2 rounded-lg text-sm border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>Cancel</button>
