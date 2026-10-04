@@ -13,8 +13,6 @@ function applyPatch(addr) {
     h = h.replace(/^127\.0\.0\.1(\t| )/mg, addr + '\t');
     h = h.replace(/^::1(\t| )localhost(\t| )/mg, '::1\t');
     fs.writeFileSync('/etc/hosts', h);
-    const final = fs.readFileSync('/etc/hosts', 'utf8').slice(0, 80);
-    process.stderr.write('hosts patched: ' + JSON.stringify(final) + '\n');
 }
 
 function waitAndPatch(attempts) {
