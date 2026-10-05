@@ -8,9 +8,12 @@ export interface ProfileResponse {
 }
 
 export interface ProfileUpdateRequest {
-    pan: string;
     firstName: string;
     lastName: string;
     email: string;
     phoneNumber: string;
+}
+
+export interface ProfileUpdateResponse extends ProfileResponse {
+    emailChanged: boolean;
 }
