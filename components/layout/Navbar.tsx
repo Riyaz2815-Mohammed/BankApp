@@ -1,10 +1,11 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
 
 export default function Navbar() {
     const { data: session } = useSession();
-    const initials = session?.user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "U";
+    const initials = session?.user?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "U";
     const handleSignOut = async () => {
         const idToken = session?.idToken;
         await signOut({ redirect: false });
@@ -15,23 +16,22 @@ export default function Navbar() {
         window.location.href = `${process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER}/protocol/openid-connect/logout?${params}`;
     };
     return (
-        <header className="h-16 border-b flex items-center justify-between px-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-            <div />
-            <div className="flex items-center gap-4">
-                {session?.user?.name && (
-                    <span className="text-sm" style={{ color: "var(--muted)" }}>{session.user.name}</span>
-                )}
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-                    {initials}
-                </div>
-                <button
-                    onClick={handleSignOut}
-                    className="text-xs px-3 py-1.5 rounded-lg font-medium"
-                    style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-                >
-                    Sign Out
-                </button>
+        <header style={{ height: "56px", background: "var(--surface)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 24px", gap: "12px", flexShrink: 0 }}>
+            {session?.user?.name && (
+                <span style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 400 }}>{session.user.name}</span>
+            )}
+            <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#fff" }}>{initials}</span>
             </div>
+            <button
+                onClick={handleSignOut}
+                style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", fontWeight: 500, color: "var(--muted)", background: "transparent", border: "1px solid var(--border)", borderRadius: "7px", padding: "5px 10px", cursor: "pointer", transition: "color 0.15s, border-color 0.15s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.borderColor = "var(--danger)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+            >
+                <LogOut size={12} />
+                Sign out
+            </button>
         </header>
     );
 }

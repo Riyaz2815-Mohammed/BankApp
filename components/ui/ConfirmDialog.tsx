@@ -8,23 +8,13 @@ interface Props {
 
 export default function ConfirmDialog({ title, message, confirmLabel = "Delete", onConfirm, onCancel }: Props) {
     return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="rounded-2xl p-6 w-full max-w-sm shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--text)" }}>{title}</h3>
-                <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>{message}</p>
-                <div className="flex gap-3">
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 py-2 rounded-lg text-sm border"
-                        style={{ borderColor: "var(--border)", color: "var(--muted)" }}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 py-2 rounded-lg text-sm text-white font-semibold"
-                        style={{ backgroundColor: "var(--danger)" }}
-                    >
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+            <div className="card" style={{ width: "100%", maxWidth: "380px", padding: "28px" }}>
+                <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "8px" }}>{title}</h3>
+                <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "24px", lineHeight: 1.6 }}>{message}</p>
+                <div style={{ display: "flex", gap: "10px" }}>
+                    <button onClick={onCancel} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                    <button onClick={onConfirm} style={{ flex: 1, padding: "8px 16px", borderRadius: "8px", background: "var(--danger)", color: "#fff", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                         {confirmLabel}
                     </button>
                 </div>

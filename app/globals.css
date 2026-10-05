@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
 :root {
-    --bg: #F0F4F8;
+    --bg: #F5F5F5;
     --surface: #FFFFFF;
-    --sidebar-bg: #1E3A5F;
-    --sidebar-text: #CBD5E1;
-    --sidebar-active: #3B82F6;
-    --primary: #2563EB;
-    --primary-dark: #1D4ED8;
-    --text: #1E293B;
-    --muted: #64748B;
-    --border: #E2E8F0;
-    --success: #10B981;
-    --danger: #EF4444;
+    --sidebar-bg: #0C0C0C;
+    --sidebar-text: #6B6B6B;
+    --sidebar-active-bg: #1C1C1C;
+    --sidebar-active-text: #FFFFFF;
+    --primary: #0F0F0F;
+    --primary-dark: #000000;
+    --text: #111111;
+    --muted: #888888;
+    --border: #E8E8E8;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --light: #F0F0F0;
+    --ring: rgba(0,0,0,0.08);
 }
 
 @theme inline {
@@ -20,8 +23,163 @@
     --font-mono: var(--font-geist-mono);
 }
 
+* { box-sizing: border-box; }
+
 body {
     background-color: var(--bg);
     color: var(--text);
     font-family: var(--font-geist-sans), Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.card-hover {
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    cursor: pointer;
+}
+
+.card-hover:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-ghost:hover { background: var(--light); }
+
+.input {
+    width: 100%;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+    border-color: #999;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 12px 12px 0 0;
+}
+
+.table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.data-table {
+    width: 100%;
+    font-size: 13px;
+    background: var(--surface);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.data-table thead tr {
+    background: #FAFAFA;
+    border-bottom: 1px solid var(--border);
+}
+
+.data-table thead th {
+    text-align: left;
+    padding: 11px 20px;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+}
+
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody tr:hover { background: #FAFAFA; }
+
+.data-table td {
+    padding: 13px 20px;
+    color: var(--text);
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.page-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
 }

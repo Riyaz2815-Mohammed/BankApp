@@ -8,6 +8,7 @@ import { getCustomers } from "@/modules/customers/api";
 import { Account } from "@/modules/accounts/types";
 import { Customer } from "@/modules/customers/types";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { CreditCard, ChevronRight } from "lucide-react";
 
 export default function AccountsPage() {
     const { data: session, status } = useSession();
@@ -20,7 +21,6 @@ export default function AccountsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Create modal
     const [showCreate, setShowCreate] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [customerSearch, setCustomerSearch] = useState("");
@@ -29,7 +29,6 @@ export default function AccountsPage() {
     const [createForm, setCreateForm] = useState({ accountType: "SAVINGS", balance: 0 });
     const [creating, setCreating] = useState(false);
 
-    // Edit modal
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [editForm, setEditForm] = useState({ accountType: "SAVINGS", balance: 0 });
     const [saving, setSaving] = useState(false);
@@ -37,36 +36,21 @@ export default function AccountsPage() {
 
     useEffect(() => {
         if (status !== "authenticated") return;
-        getAccounts()
-            .then(setAccounts)
-            .catch(() => setError("Failed to load accounts"))
-            .finally(() => setLoading(false));
-    }, [status, isAdmin]);
+        getAccounts().then(setAccounts).catch(() => setError("Failed to load accounts")).finally(() => setLoading(false));
+    }, [status]);
 
     const openCreate = () => {
         setCreateForm({ accountType: "SAVINGS", balance: 0 });
-        setSelectedCustomer(null);
-        setCustomerSearch("");
-        setShowDropdown(false);
-        if (customers.length === 0) {
-            getCustomers().then(setCustomers).catch(() => {});
-        }
+        setSelectedCustomer(null); setCustomerSearch(""); setShowDropdown(false);
+        if (customers.length === 0) getCustomers().then(setCustomers).catch(() => {});
         setShowCreate(true);
-    };
-
-    const openEdit = (a: Account) => {
-        setEditingAccount(a);
-        setEditForm({ accountType: a.accountType, balance: a.balance });
     };
 
     const handleCreate = () => {
         if (!selectedCustomer) return;
         setCreating(true);
         createAccount({ ...createForm, customerId: selectedCustomer.id })
-            .then((saved) => {
-                setAccounts((prev) => [...prev, saved]);
-                setShowCreate(false);
-            })
+            .then((saved) => { setAccounts((p) => [...p, saved]); setShowCreate(false); })
             .catch(() => setError("Failed to create account"))
             .finally(() => setCreating(false));
     };
@@ -74,294 +58,158 @@ export default function AccountsPage() {
     const handleEdit = () => {
         if (!editingAccount) return;
         setSaving(true);
-        updateAccount(editingAccount.id, {
-            accountType: editForm.accountType,
-            balance: editForm.balance,
-            customerId: editingAccount.customerId,
-        })
-            .then((saved) => {
-                setAccounts((prev) => prev.map((a) => a.id === saved.id ? saved : a));
-                setEditingAccount(null);
-            })
+        updateAccount(editingAccount.id, { accountType: editForm.accountType, balance: editForm.balance, customerId: editingAccount.customerId })
+            .then((saved) => { setAccounts((p) => p.map((a) => a.id === saved.id ? saved : a)); setEditingAccount(null); })
             .catch(() => setError("Failed to update account"))
             .finally(() => setSaving(false));
     };
 
-    const handleDelete = (id: string) => setConfirmDelete(id);
     const confirmDeleteAction = () => {
         if (!confirmDelete) return;
-        deleteAccount(confirmDelete)
-            .then(() => setAccounts((prev) => prev.filter((a) => a.id !== confirmDelete)))
-            .catch(() => setError("Failed to delete account"))
-            .finally(() => setConfirmDelete(null));
+        deleteAccount(confirmDelete).then(() => setAccounts((p) => p.filter((a) => a.id !== confirmDelete))).catch(() => setError("Failed to delete")).finally(() => setConfirmDelete(null));
     };
 
-    const filteredCustomers = customers.filter((c) => {
-        const q = customerSearch.toLowerCase();
-        return (
-            `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
-            c.email.toLowerCase().includes(q)
-        );
-    });
+    const filteredCustomers = customers.filter((c) => { const q = customerSearch.toLowerCase(); return `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q); });
+
+    const typeColor: Record<string, string> = { SAVINGS: "#1a7a4a", CURRENT: "#1d4ed8", FIXED: "#b45309" };
+    const typeBg: Record<string, string> = { SAVINGS: "#f0faf4", CURRENT: "#eff6ff", FIXED: "#fefce8" };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div>
+            <div className="page-header">
                 <div>
-                    <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
-                        {isStaff ? "All Accounts" : "My Accounts"}
-                    </h2>
-                    <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                        {isStaff ? "All registered bank accounts" : "Your bank accounts"}
-                    </p>
+                    <h1 className="page-title">{isStaff ? "All Accounts" : "My Accounts"}</h1>
+                    <p className="page-sub">{isStaff ? `${accounts.length} accounts registered` : "Your bank accounts"}</p>
                 </div>
                 {isAdmin && (
-                    <button
-                        onClick={openCreate}
-                        className="px-4 py-2 rounded-lg text-white text-sm font-semibold"
-                        style={{ backgroundColor: "var(--primary)" }}
-                    >
-                        + New Account
-                    </button>
+                    <button className="btn-primary" onClick={openCreate}>+ New Account</button>
                 )}
             </div>
 
-            {loading && <p style={{ color: "var(--muted)" }}>Loading...</p>}
-            {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-            {!loading && accounts.length === 0 && !error && (
-                <p className="text-sm" style={{ color: "var(--muted)" }}>No accounts found.</p>
-            )}
+            {error && <p style={{ color: "var(--danger)", marginBottom: "16px", fontSize: "13px" }}>{error}</p>}
+            {loading && <p style={{ color: "var(--muted)", fontSize: "13px" }}>Loading accounts…</p>}
+            {!loading && accounts.length === 0 && !error && <p style={{ color: "var(--muted)", fontSize: "13px" }}>No accounts found.</p>}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "14px" }}>
                 {accounts.map((acc) => (
                     <div
                         key={acc.id}
-                        className="rounded-xl p-5 shadow-sm"
-                        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+                        className="card card-hover"
+                        onClick={() => isStaff && router.push(`/accounts/${acc.id}`)}
+                        style={{ padding: "20px", cursor: isStaff ? "pointer" : "default" }}
                     >
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "999px", color: typeColor[acc.accountType] ?? "var(--text)", background: typeBg[acc.accountType] ?? "var(--light)", letterSpacing: "0.04em" }}>
                                 {acc.accountType}
                             </span>
-                            <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{acc.accountNo}</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <CreditCard size={14} color="var(--muted)" />
+                                {isStaff && <ChevronRight size={14} color="var(--muted)" />}
+                            </div>
                         </div>
-                        <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+
+                        <p style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)", lineHeight: 1, marginBottom: "6px" }}>
                             ₹{acc.balance.toLocaleString()}
                         </p>
-                        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Available Balance</p>
+                        <p style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", marginBottom: isStaff ? "14px" : "0" }}>
+                            {acc.accountNo}
+                        </p>
+
                         {isStaff && acc.customerName && (
-                            <p className="text-sm mt-3 font-medium truncate" style={{ color: "var(--text)" }}>
+                            <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
                                 {acc.customerName}
                             </p>
                         )}
-                        {isStaff && (
-                            <div className="flex gap-2 mt-4">
+
+                        {isAdmin && (
+                            <div style={{ display: "flex", gap: "6px", marginTop: "12px" }} onClick={(e) => e.stopPropagation()}>
                                 <button
-                                    onClick={() => router.push(`/accounts/${acc.id}`)}
-                                    className="flex-1 py-1.5 rounded-lg text-xs font-medium border"
-                                    style={{ borderColor: "var(--border)", color: "var(--primary)" }}
+                                    onClick={() => { setEditingAccount(acc); setEditForm({ accountType: acc.accountType, balance: acc.balance }); }}
+                                    className="btn-ghost"
+                                    style={{ flex: 1, padding: "6px 0", fontSize: "12px" }}
                                 >
-                                    View Details
+                                    Edit
                                 </button>
-                                {isAdmin && (
-                                    <>
-                                        <button
-                                            onClick={() => openEdit(acc)}
-                                            className="flex-1 py-1.5 rounded-lg text-xs font-medium border"
-                                            style={{ borderColor: "var(--border)", color: "var(--text)" }}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(acc.id)}
-                                            className="flex-1 py-1.5 rounded-lg text-xs font-medium"
-                                            style={{ color: "var(--danger)", backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </>
-                                )}
+                                <button
+                                    onClick={() => setConfirmDelete(acc.id)}
+                                    style={{ flex: 1, padding: "6px 0", fontSize: "12px", background: "transparent", border: "1px solid #FECACA", borderRadius: "8px", color: "var(--danger)", cursor: "pointer" }}
+                                >
+                                    Delete
+                                </button>
                             </div>
                         )}
                     </div>
                 ))}
             </div>
 
-            {confirmDelete && (
-                <ConfirmDialog
-                    title="Delete Account"
-                    message="This will permanently remove the account and all its transactions. This action cannot be undone."
-                    onConfirm={confirmDeleteAction}
-                    onCancel={() => setConfirmDelete(null)}
-                />
-            )}
+            {confirmDelete && <ConfirmDialog title="Delete Account" message="This will permanently remove the account and all its transactions." onConfirm={confirmDeleteAction} onCancel={() => setConfirmDelete(null)} />}
 
-            {/* Create Account Modal */}
             {showCreate && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text)" }}>New Account</h3>
-                        <div className="space-y-3">
-                            {/* Customer search */}
-                            <div className="relative">
-                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Customer</label>
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+                    <div className="card" style={{ width: "100%", maxWidth: "440px", padding: "28px" }}>
+                        <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "20px" }}>New Account</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                            <div>
+                                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: "6px" }}>Customer</label>
                                 {selectedCustomer ? (
-                                    <div
-                                        className="w-full px-4 py-2 rounded-lg border text-sm flex items-center justify-between"
-                                        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg)" }}
-                                    >
-                                        <span style={{ color: "var(--text)" }}>
-                                            {selectedCustomer.firstName} {selectedCustomer.lastName}
-                                            <span className="ml-2 text-xs" style={{ color: "var(--muted)" }}>
-                                                {selectedCustomer.email}
-                                            </span>
-                                        </span>
-                                        <button
-                                            onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); }}
-                                            className="text-xs ml-2"
-                                            style={{ color: "var(--muted)" }}
-                                        >
-                                            ×
-                                        </button>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "13px" }}>
+                                        <span>{selectedCustomer.firstName} {selectedCustomer.lastName} <span style={{ color: "var(--muted)", fontSize: "12px" }}>{selectedCustomer.email}</span></span>
+                                        <button onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); }} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontSize: "16px" }}>×</button>
                                     </div>
                                 ) : (
-                                    <>
-                                        <input
-                                            placeholder="Search by name or email…"
-                                            value={customerSearch}
-                                            onChange={(e) => { setCustomerSearch(e.target.value); setShowDropdown(true); }}
-                                            onFocus={() => setShowDropdown(true)}
-                                            className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                            style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                                        />
+                                    <div style={{ position: "relative" }}>
+                                        <input className="input" placeholder="Search by name or email…" value={customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} />
                                         {showDropdown && filteredCustomers.length > 0 && (
-                                            <div
-                                                className="absolute top-full left-0 right-0 mt-1 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto"
-                                                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-                                            >
+                                            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: "4px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", zIndex: 10, maxHeight: "200px", overflowY: "auto" }}>
                                                 {filteredCustomers.map((c) => (
-                                                    <button
-                                                        key={c.id}
-                                                        onClick={() => { setSelectedCustomer(c); setShowDropdown(false); }}
-                                                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors"
-                                                        style={{ color: "var(--text)" }}
-                                                    >
-                                                        <span className="font-medium">{c.firstName} {c.lastName}</span>
-                                                        <span className="ml-2 text-xs" style={{ color: "var(--muted)" }}>{c.email}</span>
+                                                    <button key={c.id} onClick={() => { setSelectedCustomer(c); setShowDropdown(false); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", fontSize: "13px", background: "none", border: "none", cursor: "pointer", color: "var(--text)" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--light)"} onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
+                                                        <span style={{ fontWeight: 500 }}>{c.firstName} {c.lastName}</span> <span style={{ color: "var(--muted)", fontSize: "12px" }}>{c.email}</span>
                                                     </button>
                                                 ))}
                                             </div>
                                         )}
-                                        {showDropdown && customerSearch && filteredCustomers.length === 0 && (
-                                            <div
-                                                className="absolute top-full left-0 right-0 mt-1 rounded-lg px-4 py-3 text-sm"
-                                                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
-                                            >
-                                                No customers match "{customerSearch}"
-                                            </div>
-                                        )}
-                                    </>
+                                    </div>
                                 )}
                             </div>
-
                             <div>
-                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Type</label>
-                                <select
-                                    value={createForm.accountType}
-                                    onChange={(e) => setCreateForm({ ...createForm, accountType: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                                >
-                                    <option value="SAVINGS">SAVINGS</option>
-                                    <option value="CURRENT">CURRENT</option>
-                                    <option value="FIXED">FIXED</option>
+                                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: "6px" }}>Account Type</label>
+                                <select className="input" value={createForm.accountType} onChange={(e) => setCreateForm({ ...createForm, accountType: e.target.value })}>
+                                    <option value="SAVINGS">SAVINGS</option><option value="CURRENT">CURRENT</option><option value="FIXED">FIXED</option>
                                 </select>
                             </div>
-
                             <div>
-                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Opening Balance (₹)</label>
-                                <input
-                                    type="number"
-                                    placeholder="e.g. 10000"
-                                    min={0}
-                                    value={createForm.balance || ""}
-                                    onChange={(e) => setCreateForm({ ...createForm, balance: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                                />
+                                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: "6px" }}>Opening Balance (₹)</label>
+                                <input className="input" type="number" placeholder="e.g. 10000" min={0} value={createForm.balance || ""} onChange={(e) => setCreateForm({ ...createForm, balance: Number(e.target.value) })} />
                             </div>
                         </div>
-                        <div className="flex gap-3 mt-6">
-                            <button
-                                onClick={() => setShowCreate(false)}
-                                className="flex-1 py-2 rounded-lg text-sm border"
-                                style={{ borderColor: "var(--border)", color: "var(--muted)" }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleCreate}
-                                disabled={creating || !selectedCustomer}
-                                className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
-                                style={{ backgroundColor: "var(--primary)" }}
-                            >
-                                {creating ? "Creating..." : "Create Account"}
-                            </button>
+                        <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+                            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowCreate(false)}>Cancel</button>
+                            <button className="btn-primary" style={{ flex: 1 }} onClick={handleCreate} disabled={creating || !selectedCustomer}>{creating ? "Creating…" : "Create Account"}</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Edit Account Modal */}
             {editingAccount && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Edit Account</h3>
-                        <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
-                            {editingAccount.customerName} · {editingAccount.accountNo}
-                        </p>
-                        <div className="space-y-3">
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+                    <div className="card" style={{ width: "100%", maxWidth: "440px", padding: "28px" }}>
+                        <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "4px" }}>Edit Account</h3>
+                        <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{editingAccount.customerName} · {editingAccount.accountNo}</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                             <div>
-                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Account Type</label>
-                                <select
-                                    value={editForm.accountType}
-                                    onChange={(e) => setEditForm({ ...editForm, accountType: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                                >
-                                    <option value="SAVINGS">SAVINGS</option>
-                                    <option value="CURRENT">CURRENT</option>
-                                    <option value="FIXED">FIXED</option>
+                                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: "6px" }}>Account Type</label>
+                                <select className="input" value={editForm.accountType} onChange={(e) => setEditForm({ ...editForm, accountType: e.target.value })}>
+                                    <option value="SAVINGS">SAVINGS</option><option value="CURRENT">CURRENT</option><option value="FIXED">FIXED</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>Balance (₹)</label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={editForm.balance}
-                                    onChange={(e) => setEditForm({ ...editForm, balance: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
-                                />
+                                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: "6px" }}>Balance (₹)</label>
+                                <input className="input" type="number" min={0} value={editForm.balance} onChange={(e) => setEditForm({ ...editForm, balance: Number(e.target.value) })} />
                             </div>
                         </div>
-                        <div className="flex gap-3 mt-6">
-                            <button
-                                onClick={() => setEditingAccount(null)}
-                                className="flex-1 py-2 rounded-lg text-sm border"
-                                style={{ borderColor: "var(--border)", color: "var(--muted)" }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleEdit}
-                                disabled={saving}
-                                className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
-                                style={{ backgroundColor: "var(--primary)" }}
-                            >
-                                {saving ? "Saving..." : "Save Changes"}
-                            </button>
+                        <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+                            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setEditingAccount(null)}>Cancel</button>
+                            <button className="btn-primary" style={{ flex: 1 }} onClick={handleEdit} disabled={saving}>{saving ? "Saving…" : "Save Changes"}</button>
                         </div>
                     </div>
                 </div>

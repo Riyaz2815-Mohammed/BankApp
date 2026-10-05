@@ -3,12 +3,14 @@ import Navbar from "@/components/layout/Navbar";
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex min-h-screen">
+        <div style={{ display: "flex", minHeight: "100vh" }}>
             <Sidebar />
-            <div className="flex-1 flex flex-col">
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
                 <Navbar />
-                <main className="flex-1 p-6" style={{ backgroundColor: "var(--bg)" }}>
-                    {children}
+                <main style={{ flex: 1, padding: "32px 36px", backgroundColor: "var(--bg)" }}>
+                    <div style={{ maxWidth: "1100px" }}>
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>
