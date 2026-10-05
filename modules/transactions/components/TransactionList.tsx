@@ -9,6 +9,7 @@ interface Props {
     total: number;
     onPrev: () => void;
     onNext: () => void;
+    isDateFiltered?: boolean;
 }
 
 function formatDateTime(ts: string) {
@@ -16,8 +17,8 @@ function formatDateTime(ts: string) {
     return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
-export default function TransactionList({ transactions, page, totalPages, total, onPrev, onNext }: Props) {
-    if (transactions.length === 0) return <p className="text-sm" style={{ color: "var(--muted)" }}>No transactions found.</p>;
+export default function TransactionList({ transactions, page, totalPages, total, onPrev, onNext, isDateFiltered }: Props) {
+    if (transactions.length === 0) return <p className="text-sm" style={{ color: "var(--muted)" }}>{isDateFiltered ? "No transactions in this date range. Try a wider filter or navigate to an earlier page." : "No transactions found."}</p>;
 
     return (
         <div className="space-y-3">
