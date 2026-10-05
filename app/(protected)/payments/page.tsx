@@ -7,6 +7,20 @@ import { PaymentResponse } from "@/modules/payments/types";
 
 const PAGE_SIZE = 10;
 
+const DATE_PRESETS = [
+    { label: "All", value: "all" },
+    { label: "Last 5 days", value: "5" },
+    { label: "Last 10 days", value: "10" },
+    { label: "Last 30 days", value: "30" },
+];
+
+function filterByDate(payments: PaymentResponse[], days: string) {
+    if (days === "all") return payments;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(days));
+    return payments.filter((p) => new Date(p.initiatedAt) >= cutoff);
+}
+
 function formatDateTime(ts: string) {
     const d = new Date(ts);
     return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
@@ -21,6 +35,7 @@ export default function PaymentsPage() {
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [total, setTotal] = useState(0);
+    const [dateFilter, setDateFilter] = useState("all");
 
     const fetchPage = useCallback((p: number) => {
         setLoading(true);
@@ -60,6 +75,15 @@ export default function PaymentsPage() {
             {!loading && payments.length === 0 && !error && <p className="text-sm" style={{ color: "var(--muted)" }}>No payments found.</p>}
             {!loading && payments.length > 0 && (
                 <div className="space-y-3">
+                    <div className="flex gap-2 flex-wrap">
+                        {DATE_PRESETS.map((p) => (
+                            <button key={p.value} onClick={() => setDateFilter(p.value)}
+                                className="px-3 py-1 rounded-full text-xs font-medium border transition-all"
+                                style={{ backgroundColor: dateFilter === p.value ? "var(--primary)" : "var(--surface)", borderColor: dateFilter === p.value ? "var(--primary)" : "var(--border)", color: dateFilter === p.value ? "#fff" : "var(--muted)" }}>
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                     <div className="rounded-xl overflow-hidden shadow-sm" style={{ border: "1px solid var(--border)" }}>
                         <div style={{ maxHeight: "420px", overflowY: "auto" }}>
                             <table className="w-full text-sm" style={{ backgroundColor: "var(--surface)", borderCollapse: "separate", borderSpacing: 0 }}>
@@ -74,7 +98,7 @@ export default function PaymentsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {payments.map((p) => (
+                                    {filterByDate(payments, dateFilter).map((p) => (
                                         <tr key={p.paymentId} style={{ borderBottom: "1px solid var(--border)" }}>
                                             {isStaff && <td className="px-5 py-3 font-medium" style={{ color: "var(--text)" }}>{p.initiatedByName}</td>}
                                             <td className="px-5 py-3 font-mono text-xs" style={{ color: "var(--muted)" }}>{p.fromAccountNo}</td>

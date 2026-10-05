@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getCustomers, updateCustomer, deleteCustomer, registerUser, createManager } from "@/modules/customers/api";
-import { Customer, CustomerRequest, RegisterUserRequest, RegisterUserResponse, CreateManagerRequest, CreateManagerResponse } from "@/modules/customers/types";
+import { getCustomers, updateCustomer, deleteCustomer, registerUser } from "@/modules/customers/api";
+import { Customer, CustomerRequest, RegisterUserRequest, RegisterUserResponse } from "@/modules/customers/types";
 import CustomerRow from "@/modules/customers/components/CustomerRow";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const PAGE_SIZE = 5;
 const emptyRegisterForm: RegisterUserRequest = { firstName: "", lastName: "", email: "", pan: "", phoneNumber: "", username: "", temporaryPassword: "", accountType: "SAVINGS", initialBalance: 0 };
-const emptyManagerForm: CreateManagerRequest = { username: "", email: "", firstName: "", lastName: "", temporaryPassword: "" };
 
 export default function CustomersPage() {
     const { data: session, status } = useSession();
@@ -29,11 +28,6 @@ export default function CustomersPage() {
     const [registerForm, setRegisterForm] = useState<RegisterUserRequest>(emptyRegisterForm);
     const [registering, setRegistering] = useState(false);
     const [registerResult, setRegisterResult] = useState<RegisterUserResponse | null>(null);
-
-    const [showManagerModal, setShowManagerModal] = useState(false);
-    const [managerForm, setManagerForm] = useState<CreateManagerRequest>(emptyManagerForm);
-    const [creatingManager, setCreatingManager] = useState(false);
-    const [managerResult, setManagerResult] = useState<CreateManagerResponse | null>(null);
 
     useEffect(() => {
         if (status === "loading") return;
@@ -76,16 +70,6 @@ export default function CustomersPage() {
         }).finally(() => setRegistering(false));
     };
 
-    const openManagerModal = () => { setManagerForm(emptyManagerForm); setManagerResult(null); setShowManagerModal(true); };
-    const handleCreateManager = () => {
-        setCreatingManager(true);
-        setError(null);
-        createManager(managerForm).then((res) => setManagerResult(res)).catch((err) => {
-            const msg = err?.response?.data?.message ?? err?.response?.data ?? "Failed to create manager.";
-            setError(typeof msg === "string" ? msg : "Failed to create manager.");
-        }).finally(() => setCreatingManager(false));
-    };
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -93,12 +77,7 @@ export default function CustomersPage() {
                     <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Customers</h2>
                     <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>Manage all bank customers</p>
                 </div>
-                <div className="flex gap-2">
-                    {isAdmin && (
-                        <button onClick={openManagerModal} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "#7C3AED" }}>+ Create Manager</button>
-                    )}
-                    <button onClick={openRegister} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--success, #16a34a)" }}>+ Register User</button>
-                </div>
+                <button onClick={openRegister} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ backgroundColor: "var(--success, #16a34a)" }}>+ Register User</button>
             </div>
 
             {loading && <p style={{ color: "var(--muted)" }}>Loading...</p>}
@@ -210,44 +189,6 @@ export default function CustomersPage() {
                 </div>
             )}
 
-            {showManagerModal && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="rounded-2xl p-6 w-full max-w-md shadow-xl" style={{ backgroundColor: "var(--surface)" }}>
-                        {managerResult ? (
-                            <>
-                                <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Manager Created</h3>
-                                <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>{managerResult.message}</p>
-                                <div className="rounded-lg p-4 space-y-2 text-sm mb-4" style={{ backgroundColor: "var(--bg)", border: "1px solid var(--border)" }}>
-                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Name</span><span style={{ color: "var(--text)" }}>{managerResult.firstName} {managerResult.lastName}</span></div>
-                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Email</span><span style={{ color: "var(--text)" }}>{managerResult.email}</span></div>
-                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Username</span><span className="font-mono text-xs" style={{ color: "var(--text)" }}>{managerForm.username}</span></div>
-                                    <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>Temp Password</span><span className="font-mono text-xs" style={{ color: "var(--text)" }}>{managerForm.temporaryPassword}</span></div>
-                                </div>
-                                <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>Share these credentials with the manager. They will log in via Keycloak.</p>
-                                <button onClick={() => { setShowManagerModal(false); setManagerResult(null); }} className="w-full py-2 rounded-lg text-sm text-white font-semibold" style={{ backgroundColor: "#7C3AED" }}>Done</button>
-                            </>
-                        ) : (
-                            <>
-                                <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Create Bank Manager</h3>
-                                <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>Creates a Keycloak account with the BankManager role. No customer record is created.</p>
-                                <div className="space-y-3">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input placeholder="First Name" value={managerForm.firstName} onChange={(e) => setManagerForm({ ...managerForm, firstName: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-purple-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                                        <input placeholder="Last Name" value={managerForm.lastName} onChange={(e) => setManagerForm({ ...managerForm, lastName: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-purple-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                                    </div>
-                                    <input placeholder="Email" value={managerForm.email} onChange={(e) => setManagerForm({ ...managerForm, email: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-purple-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                                    <input placeholder="Username (for login)" value={managerForm.username} onChange={(e) => setManagerForm({ ...managerForm, username: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-purple-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                                    <input placeholder="Temporary Password" value={managerForm.temporaryPassword} onChange={(e) => setManagerForm({ ...managerForm, temporaryPassword: e.target.value })} className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-purple-500" style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }} />
-                                </div>
-                                <div className="flex gap-3 mt-6">
-                                    <button onClick={() => setShowManagerModal(false)} className="flex-1 py-2 rounded-lg text-sm border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>Cancel</button>
-                                    <button onClick={handleCreateManager} disabled={creatingManager || !managerForm.firstName || !managerForm.email || !managerForm.username || !managerForm.temporaryPassword} className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50" style={{ backgroundColor: "#7C3AED" }}>{creatingManager ? "Creating..." : "Create Manager"}</button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
