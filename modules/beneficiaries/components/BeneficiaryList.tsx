@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Beneficiary } from "../types";
 
 interface Props {
@@ -8,13 +7,7 @@ interface Props {
     onDelete?: (id: string) => void;
 }
 
-const PAGE_SIZE = 5;
-
 export default function BeneficiaryList({ beneficiaries, onDelete }: Props) {
-    const [page, setPage] = useState(1);
-    const totalPages = Math.max(1, Math.ceil(beneficiaries.length / PAGE_SIZE));
-    const visible = beneficiaries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
     if (beneficiaries.length === 0) return <p className="text-sm" style={{ color: "var(--muted)" }}>No beneficiaries added yet.</p>;
 
     return (
@@ -32,7 +25,7 @@ export default function BeneficiaryList({ beneficiaries, onDelete }: Props) {
                             </tr>
                         </thead>
                         <tbody>
-                            {visible.map((b) => (
+                            {beneficiaries.map((b) => (
                                 <tr key={b.id} style={{ borderBottom: "1px solid var(--border)" }}>
                                     <td className="px-5 py-3 font-medium" style={{ color: "var(--text)" }}>{b.nickname}</td>
                                     <td className="px-5 py-3" style={{ color: "var(--muted)" }}>{b.accountHolderName}</td>
@@ -51,13 +44,7 @@ export default function BeneficiaryList({ beneficiaries, onDelete }: Props) {
                     </table>
                 </div>
             </div>
-            <div className="flex items-center justify-between px-1">
-                <span className="text-xs" style={{ color: "var(--muted)" }}>Page {page} of {totalPages} · {beneficiaries.length} records</span>
-                <div className="flex gap-2">
-                    <button onClick={() => setPage((p) => p - 1)} disabled={page === 1} className="px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-40" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Prev</button>
-                    <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages} className="px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-40" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Next</button>
-                </div>
-            </div>
+            <span className="text-xs px-1" style={{ color: "var(--muted)" }}>{beneficiaries.length} records</span>
         </div>
     );
 }
