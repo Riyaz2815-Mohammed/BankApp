@@ -6,10 +6,13 @@ export interface Beneficiary {
     accountType: string;
     accountHolderName: string;
     nickname: string;
+    sourceAccountId?: string;
+    sourceAccountNo?: string;
 }
 
 export interface BeneficiaryRequest {
     accountId: string;
+    sourceAccountId: string;
     nickname: string;
 }
 

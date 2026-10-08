@@ -81,7 +81,7 @@ export default function AccountsPage() {
                     <h1 className="page-title">{isStaff ? "All Accounts" : "My Accounts"}</h1>
                     <p className="page-sub">{isStaff ? `${accounts.length} accounts registered` : "Your bank accounts"}</p>
                 </div>
-                {isAdmin && (
+                {isStaff && (
                     <button className="btn-primary" onClick={openCreate}>+ New Account</button>
                 )}
             </div>

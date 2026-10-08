@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { getAccount } from "@/modules/accounts/api";
 import { getCustomer } from "@/modules/customers/api";
-import { getBeneficiaries } from "@/modules/beneficiaries/api";
+import { getBeneficiariesByAccount } from "@/modules/beneficiaries/api";
 import { Account } from "@/modules/accounts/types";
 import { Customer } from "@/modules/customers/types";
 import { Beneficiary } from "@/modules/beneficiaries/types";
@@ -34,7 +34,7 @@ export default function AccountDetailPage() {
                 setAccount(acc);
                 return Promise.all([
                     getCustomer(acc.customerId),
-                    getBeneficiaries(acc.customerId),
+                    getBeneficiariesByAccount(acc.id),
                 ]);
             })
             .then(([cust, bens]) => {

@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { getBeneficiaries, addBeneficiary, deleteBeneficiary, lookupAccount } from "@/modules/beneficiaries/api";
+import { getAccounts } from "@/modules/accounts/api";
 import { Beneficiary, AccountLookup } from "@/modules/beneficiaries/types";
+import { Account } from "@/modules/accounts/types";
 import BeneficiaryList from "@/modules/beneficiaries/components/BeneficiaryList";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
@@ -23,6 +25,8 @@ export default function BeneficiariesPage() {
     const [nickname, setNickname] = useState("");
     const [saving, setSaving] = useState(false);
     const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+    const [myAccounts, setMyAccounts] = useState<Account[]>([]);
+    const [sourceAccountId, setSourceAccountId] = useState("");
 
     useEffect(() => {
         if (status !== "authenticated") return;
@@ -30,6 +34,7 @@ export default function BeneficiariesPage() {
             .then(setBeneficiaries)
             .catch(() => setError("Failed to load beneficiaries"))
             .finally(() => setLoading(false));
+        getAccounts().then(setMyAccounts).catch(() => {});
     }, [status]);
 
     const openModal = () => {
@@ -38,6 +43,7 @@ export default function BeneficiariesPage() {
         setFoundAccount(null);
         setNickname("");
         setSearchError(null);
+        setSourceAccountId(myAccounts.length === 1 ? myAccounts[0].id : "");
         setShowModal(true);
     };
 
@@ -57,9 +63,9 @@ export default function BeneficiariesPage() {
     };
 
     const handleAdd = () => {
-        if (!foundAccount || !nickname.trim()) return;
+        if (!foundAccount || !nickname.trim() || !sourceAccountId) return;
         setSaving(true);
-        addBeneficiary({ accountId: foundAccount.id, nickname: nickname.trim() })
+        addBeneficiary({ accountId: foundAccount.id, sourceAccountId, nickname: nickname.trim() })
             .then((b) => {
                 setBeneficiaries((prev) => [...prev, b]);
                 setShowModal(false);
@@ -115,8 +121,18 @@ export default function BeneficiariesPage() {
                             <>
                                 <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Add Beneficiary</h3>
                                 <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
-                                    Enter the account number of the person you want to add.
+                                    Choose which of your accounts this beneficiary is for, then enter their account number.
                                 </p>
+                                <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>From account</label>
+                                <select
+                                    value={sourceAccountId}
+                                    onChange={(e) => setSourceAccountId(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                                    style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--bg)" }}
+                                >
+                                    <option value="">Select your account…</option>
+                                    {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountType} · {a.accountNo}</option>)}
+                                </select>
                                 <input
                                     placeholder="Account number (e.g. SB002001)"
                                     value={accountNoInput}
@@ -139,7 +155,7 @@ export default function BeneficiariesPage() {
                                     </button>
                                     <button
                                         onClick={handleSearch}
-                                        disabled={searching || !accountNoInput.trim()}
+                                        disabled={searching || !accountNoInput.trim() || !sourceAccountId}
                                         className="flex-1 py-2 rounded-lg text-sm text-white font-semibold disabled:opacity-50"
                                         style={{ backgroundColor: "var(--primary)" }}
                                     >

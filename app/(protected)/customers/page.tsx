@@ -99,7 +99,7 @@ export default function CustomersPage() {
                                 </thead>
                                 <tbody>
                                     {visibleCustomers.map((c) => (
-                                        <CustomerRow key={c.id} customer={c} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} />
+                                        <CustomerRow key={c.id} customer={c} isAdmin={isAdmin} onView={(cust) => router.push(`/customers/${cust.id}`)} onEdit={openEdit} onDelete={handleDelete} />
                                     ))}
                                 </tbody>
                             </table>
