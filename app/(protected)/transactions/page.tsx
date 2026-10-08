@@ -121,7 +121,7 @@ export default function TransactionsPage() {
                             <span className="font-mono font-medium" style={{ color: "var(--text)" }}>{selectedAccount.accountNo}</span>
                             <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: "var(--border)", color: "var(--muted)" }}>{selectedAccount.accountType}</span>
                             {selectedAccount.customerName && <span style={{ color: "var(--muted)" }}>{selectedAccount.customerName}</span>}
-                            <span className="ml-auto font-semibold" style={{ color: "var(--text)" }}>₹{selectedAccount.balance.toLocaleString()}</span>
+                            {selectedAccount.balance != null && <span className="ml-auto font-semibold" style={{ color: "var(--text)" }}>₹{selectedAccount.balance.toLocaleString()}</span>}
                         </div>
                     )}
                 </div>
